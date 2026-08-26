@@ -96,18 +96,18 @@
       </noscript>
 
       <!-- Offers -->
-      <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="flex items-start justify-between gap-4">
         <div>
           <p class="section-code">§ 01 — Your offers</p>
           <h1 class="mt-2 text-2xl font-extrabold tracking-tight">Offers</h1>
           <p class="mt-1 text-[0.875rem] text-ink-soft">One entry per dealer. Add every quote you have — the tool ranks them and names the winner.</p>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <button class="btn" data-action="add-detailed">+ Full worksheet — discounts, rebates, add-ons</button>
-          <button class="btn btn-ghost" data-action="add-quick">+ Quick compare (5 numbers)</button>
-          <button class="btn btn-ghost" data-action="load-demo">Load demo deal</button>
-          <button class="btn btn-danger" data-action="clear-all">Clear everything</button>
-        </div>
+        <button class="btn btn-danger shrink-0" data-action="clear-all">Clear everything</button>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button class="btn" data-action="add-detailed">+ Full worksheet — discounts, rebates, add-ons</button>
+        <button class="btn btn-ghost" data-action="add-quick">+ Quick compare (5 numbers)</button>
+        <button class="btn btn-ghost" data-action="load-demo">Load demo deal</button>
       </div>
       <div id="offers" class="mt-6 grid gap-6"></div>
 
