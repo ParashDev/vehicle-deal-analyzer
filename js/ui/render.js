@@ -253,32 +253,91 @@
     </section>`
   }
 
-  function waterfallDetail(offer) {
-    const { best } = offerComputed(offer)
-    if (!best) return ""
-    const w = best.waterfall
-    const line = (label, value, cls) => `<tr class="${cls || ""}"><td class="py-1 pr-4 text-ink-soft">${label}</td><td class="py-1 text-right font-mono tabular">${value}</td></tr>`
+  // One worksheet card per way to pay, side by side — the OTDs differ only by
+  // which rebates each way keeps, and this makes that visible instead of
+  // showing one ambiguous table.
+  function waterfallCard(offer, scenario) {
+    let w, label
+    if (scenario) {
+      const res = evaluateScenario(offer, scenario, state.horizon)
+      w = res.waterfall
+      label = scenario.label
+    } else {
+      w = computeWaterfall({
+        msrp: offer.msrp, marketAdjustment: offer.marketAdjustment, factoryDiscount: offer.factoryDiscount,
+        dealerDiscount: offer.dealerDiscount, accessories: offer.accessories, fees: offer.fees,
+        rebateTotal: offer.rebates.reduce((s, r) => s + r.amount, 0),
+        tradeInValue: offer.financing.tradeInValue, tradeInPayoff: offer.financing.tradeInPayoff,
+        stateCode: offer.taxJurisdiction.stateCode, rateOverride: offer.taxJurisdiction.salesTaxRate,
+        extraTaxes: offer.taxJurisdiction.extraTaxes,
+        dealerStatedTax: offer.dealerStatedTax != null ? offer.dealerStatedTax : undefined,
+      })
+      label = offer.rebates.length ? "With all rebates applied" : "As entered"
+    }
     const taxDelta = w.dealerStatedTax != null ? w.dealerStatedTax - w.computedTax.totalTax : null
+    const line = (label2, value, cls) => `<tr class="${cls || ""}"><td class="py-1.5 pr-4 text-ink-soft">${label2}</td><td class="py-1.5 text-right font-mono tabular whitespace-nowrap">${value}</td></tr>`
+    const rebateRow = w.rebateTotal > 0
+      ? line("Rebates kept in this option", `<span class="text-good">−${fmt(w.rebateTotal)}</span>`)
+      : offer.rebates.length
+        ? line(`Rebates <span class="text-ink-faint">(given up in this option)</span>`, `<span class="text-ink-faint">—</span>`)
+        : ""
     return `
-    <details class="border-t border-hairline">
-      <summary class="cursor-pointer px-4 py-3 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint hover:text-ink sm:px-5">SHOW THE WATERFALL — MSRP TO OUT THE DOOR</summary>
-      <div class="px-4 pb-5 sm:px-5">
-        <table class="w-full max-w-md text-[0.8125rem]">
+      <div class="panel panel-strong bg-paper p-4 sm:p-5">
+        <div class="mb-3 flex items-baseline justify-between gap-4 border-b-2 border-ink pb-2">
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">${esc(label).toUpperCase()}</p>
+          <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">OTD <span class="text-sm font-semibold text-ink">${fmt(w.outTheDoor)}</span></p>
+        </div>
+        <table class="w-full text-[0.8125rem]">
           ${w.factoryDiscount ? line("Sticker before discounts", fmt(w.stickerBeforeDiscounts)) : ""}
           ${line("Total MSRP", fmt(w.msrp))}
-          ${w.marketAdjustment ? line("Market adjustment", `<span class="text-bad">+${fmt(w.marketAdjustment)}</span>`) : ""}
+          ${w.marketAdjustment ? line(`<span class="text-bad">Dealer markup</span>`, `<span class="text-bad">+${fmt(w.marketAdjustment)}</span>`) : ""}
           ${line("Dealer discount", `<span class="text-good">−${fmt(w.dealerDiscount)}</span>`)}
           ${line("<strong>Selling price</strong>", `<strong>${fmt(w.sellingPrice)}</strong>`, "border-t border-hairline")}
-          ${w.accessoriesCharged ? line("Accessories charged", "+" + fmt(w.accessoriesCharged)) : ""}
-          ${line("Taxable fees", "+" + fmt(w.taxableFees))}
+          ${w.accessoriesCharged ? line("Dealer add-ons charged", "+" + fmt(w.accessoriesCharged)) : ""}
+          ${w.taxableFees ? line("Taxable fees (doc fee)", "+" + fmt(w.taxableFees)) : ""}
           ${line("<strong>Taxable subtotal</strong>", `<strong>${fmt(w.taxableSubtotal)}</strong>`, "border-t border-hairline")}
-          ${line("Rebates", `<span class="text-good">−${fmt(w.rebateTotal)}</span>`)}
+          ${rebateRow}
           ${line("<strong>Cash price</strong>", `<strong>${fmt(w.cashPrice)}</strong>`, "border-t border-hairline")}
-          ${line(`Sales tax · our estimate @ ${fmtPct(w.computedTax.rateUsed)}${w.computedTax.rebateReducedBase ? " (post-rebate basis)" : " (pre-rebate basis)"}`, "+" + fmt(w.computedTax.totalTax))}
+          ${line(`Sales tax @ ${fmtPct(w.computedTax.rateUsed)} <span class="text-ink-faint">(${w.computedTax.rebateReducedBase ? "after rebates" : "before rebates — most states"})</span>`, "+" + fmt(w.computedTax.totalTax))}
           ${w.dealerStatedTax != null ? line(`Dealer's stated tax <span class="text-ink-faint">(pinned${taxDelta && Math.abs(taxDelta) > 50 ? `, ${taxDelta > 0 ? "higher" : "lower"} by ${fmt(Math.abs(taxDelta))}` : ""})</span>`, "+" + fmt(w.dealerStatedTax)) : ""}
-          ${line("Government fees (non-taxable)", "+" + fmt(w.nonTaxableFees))}
+          ${line("Government fees (title, registration…)", "+" + fmt(w.nonTaxableFees))}
           ${line("<strong>OUT THE DOOR</strong>", `<strong class="text-base">${fmt(w.outTheDoor)}</strong>`, "border-t-2 border-ink")}
         </table>
+      </div>`
+  }
+
+  function waterfallDetail(offer) {
+    if (!offer.msrp) return ""
+    const scenarios = offer.scenarios.length ? offer.scenarios : [null]
+    const cards = scenarios.map((s) => waterfallCard(offer, s)).join("")
+
+    // Teach while showing: explain what the cards mean and how this state
+    // treats rebates in the tax math
+    const rule = getStateRule(offer.taxJurisdiction.stateCode)
+    const notes = []
+    notes.push("Every line above comes straight from what you entered — check it against the dealer's worksheet line by line.")
+    if (scenarios.length > 1 && offer.rebates.length) {
+      notes.push("The cards differ only in the rebate line: that's the rebate-vs-low-APR trade, in dollars, before financing even starts.")
+    }
+    if (rule) {
+      notes.push(rule.rebateIsTaxable
+        ? rule.name + " charges sales tax on the price BEFORE rebates — so giving up a rebate never changes the tax, only the cash price. Most calculators get this wrong."
+        : rule.name + " charges sales tax on the price AFTER rebates — so keeping a rebate also lowers your tax.")
+    }
+    if (offer.dealerStatedTax == null) {
+      notes.push("Tax shown is our estimate. When you have the dealer's worksheet, enter their tax number in section A and we'll pin it and flag any gap.")
+    }
+
+    return `
+    <details class="border-t border-hairline">
+      <summary class="cursor-pointer px-4 py-3 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint hover:text-ink sm:px-5">SHOW THE WATERFALL — MSRP TO OUT THE DOOR${scenarios.length > 1 ? ", PER WAY TO PAY" : ""}</summary>
+      <div class="grid gap-4 px-4 pb-3 sm:px-5 ${scenarios.length > 1 ? "lg:grid-cols-2" : "lg:max-w-xl"}">
+        ${cards}
+      </div>
+      <div class="px-4 pb-5 sm:px-5">
+        <ul class="grid gap-1.5 text-[0.75rem] leading-relaxed text-ink-faint ${scenarios.length > 1 ? "" : "lg:max-w-xl"}">
+          ${notes.map((n) => `<li class="flex gap-2"><span class="select-none">·</span><span>${n}</span></li>`).join("")}
+        </ul>
       </div>
     </details>`
   }
