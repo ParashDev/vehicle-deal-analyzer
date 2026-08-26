@@ -1,6 +1,6 @@
 # Vehicle Deal Analyzer
 
-**Live: [cars-compare.dplooy.com](https://cars-compare.dplooy.com/)**
+**Live: [vehicle-deal-analyzer.dplooy.com](https://vehicle-deal-analyzer.dplooy.com/)**
 
 A free, browser-based tool for anyone buying a car or truck. Enter each dealer's
 worksheet and it tells you what every offer *really* costs — normalized to a true

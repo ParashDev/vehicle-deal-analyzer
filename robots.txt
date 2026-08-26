@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cars-compare.dplooy.com/sitemap.xml
+Sitemap: https://vehicle-deal-analyzer.dplooy.com/sitemap.xml
