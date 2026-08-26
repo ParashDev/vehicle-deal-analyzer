@@ -296,7 +296,7 @@
           <div>
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">MONTHLY PAYMENT — OUR MATH</p>
             <p class="font-mono text-xl font-semibold tabular">${fmt(res.scheduledPayment)}</p>
-            <p class="text-[0.6875rem] text-ink-faint">${res.apr}% APR · ${res.termMonths} months — computed from your numbers, not the dealer's quote. If theirs is higher, ask why.</p>
+            <p class="text-[0.6875rem] text-ink-faint">${res.apr}% APR · ${res.termMonths} months</p>
           </div>
           <div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">AMOUNT FINANCED</p>
