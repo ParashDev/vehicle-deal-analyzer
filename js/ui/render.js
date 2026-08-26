@@ -64,6 +64,10 @@
             <p class="font-mono text-base font-semibold tabular">${fmt(best.waterfall.outTheDoor)}</p>
           </div>
           <div class="text-right">
+            <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">MONTHLY</p>
+            <p class="font-mono text-base font-semibold tabular">${fmt(best.scheduledPayment)}</p>
+          </div>
+          <div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">SCORE</p>
             <p class="font-mono text-base font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}</p>
           </div>` : ""}
@@ -257,9 +261,9 @@
   // which rebates each way keeps, and this makes that visible instead of
   // showing one ambiguous table.
   function waterfallCard(offer, scenario) {
-    let w, label
+    let w, label, res = null
     if (scenario) {
-      const res = evaluateScenario(offer, scenario, state.horizon)
+      res = evaluateScenario(offer, scenario, state.horizon)
       w = res.waterfall
       label = scenario.label
     } else {
@@ -287,6 +291,19 @@
           <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">${esc(label).toUpperCase()}</p>
           <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">OTD <span class="text-sm font-semibold text-ink">${fmt(w.outTheDoor)}</span></p>
         </div>
+        ${res ? `
+        <div class="mb-3 grid grid-cols-2 gap-3 border-b border-hairline pb-3">
+          <div>
+            <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">MONTHLY PAYMENT — OUR MATH</p>
+            <p class="font-mono text-xl font-semibold tabular">${fmt(res.scheduledPayment)}</p>
+            <p class="text-[0.6875rem] text-ink-faint">${res.apr}% APR · ${res.termMonths} months — computed from your numbers, not the dealer's quote. If theirs is higher, ask why.</p>
+          </div>
+          <div class="text-right">
+            <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">AMOUNT FINANCED</p>
+            <p class="font-mono text-xl font-semibold tabular">${fmt(res.amountFinanced)}</p>
+            <p class="text-[0.6875rem] text-ink-faint">after ${fmt0(offer.financing.downPayment)} down${offer.financing.tradeInValue ? " + trade" : ""}</p>
+          </div>
+        </div>` : ""}
         <table class="w-full text-[0.8125rem]">
           ${w.factoryDiscount ? line("Sticker before discounts", fmt(w.stickerBeforeDiscounts)) : ""}
           ${line("Total MSRP", fmt(w.msrp))}
@@ -377,7 +394,7 @@
         <tr><td>Rebates in this path</td>${results.map((r) => `<td>${r.rebateTotal ? "−" + fmt(r.rebateTotal) : "—"}</td>`).join("")}</tr>
         <tr><td>Amount financed</td>${results.map((r) => `<td>${fmt(r.amountFinanced)}</td>`).join("")}</tr>
         <tr><td>APR / term</td>${results.map((r) => `<td>${r.apr}% · ${r.termMonths} mo</td>`).join("")}</tr>
-        <tr><td>Monthly payment <span class="text-ink-faint">(not the headline)</span></td>${results.map((r) => `<td>${fmt(r.scheduledPayment)}</td>`).join("")}</tr>
+        <tr><td>Monthly payment</td>${results.map((r) => `<td>${fmt(r.scheduledPayment)}</td>`).join("")}</tr>
         <tr><td>Interest paid by month ${state.horizon}</td>${results.map((r) => `<td>${fmt(r.interestPaid)}</td>`).join("")}</tr>
         <tr><td>Balance cleared at month ${state.horizon}</td>${results.map((r) => `<td>${r.balanceAtHorizon ? fmt(r.balanceAtHorizon) : "—"}</td>`).join("")}</tr>
       </tbody>
