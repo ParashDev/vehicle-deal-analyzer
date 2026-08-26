@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /tests.html
+
+Sitemap: https://cars-compare.dplooy.com/sitemap.xml

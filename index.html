@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Car Deal Analyzer — True Out-the-Door Price Comparison</title>
+  <meta name="description" content="Free car deal analyzer. Compare dealer offers by true out-the-door price, see whether the cash rebate or 0% APR wins for your payoff plan, and catch junk fees before you sign. No signup." />
+  <meta name="keywords" content="car deal analyzer, out the door price calculator, compare car dealer offers, rebate vs 0% APR, rebate or low APR calculator, car buying junk fees, doc fee by state, dealer worksheet explained, total cost of car loan, early payoff car loan calculator, car deal checker, negotiate car price questions" />
+  <link rel="canonical" href="https://cars-compare.dplooy.com/" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://cars-compare.dplooy.com/" />
+  <meta property="og:site_name" content="Car Deal Analyzer" />
+  <meta property="og:title" content="Car Deal Analyzer — True Out-the-Door Price Comparison" />
+  <meta property="og:description" content="Compare dealer offers by what they actually cost. Rebate vs 0% APR solved for YOUR payoff plan. Junk fees flagged. Free, no signup, runs in your browser." />
+  <meta property="og:image" content="https://cars-compare.dplooy.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Car Deal Analyzer — True Out-the-Door Price Comparison" />
+  <meta name="twitter:description" content="Rebate or 0% APR? Solved for your actual payoff plan — plus junk-fee detection and the questions to ask before you sign." />
+  <meta name="twitter:image" content="https://cars-compare.dplooy.com/og.png" />
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#16191d", "ink-soft": "#4a5058", "ink-faint": "#8a9099",
+            paper: "#fafaf8", raised: "#ffffff", hairline: "#d8dad6",
+            good: "#0a7d43", "good-wash": "#e9f5ee",
+            bad: "#c22f21", "bad-wash": "#fbeeec",
+            warn: "#9a5b00", "warn-wash": "#faf3e4",
+            accent: "#1f4fd8", "accent-wash": "#ecf1fd",
+          },
+          fontFamily: {
+            sans: ['"Public Sans"', "system-ui", "sans-serif"],
+            mono: ['"IBM Plex Mono"', "ui-monospace", "monospace"],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="css/app.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "Car Deal Analyzer",
+        "url": "https://cars-compare.dplooy.com/",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Compare car dealer offers by true out-the-door price, decide between a cash rebate and promotional low APR for your actual payoff plan, and detect junk fees and add-ons before signing.",
+        "featureList": [
+          "Out-the-door price waterfall for every offer",
+          "Rebate vs 0% APR breakeven solved for your payoff horizon",
+          "Total cost of ownership ranking across every offer and scenario",
+          "Junk fee and add-on detection with dollar impact",
+          "Doc fee check against every state's cap and typical",
+          "Sales tax verification with state-by-state rebate taxability",
+          "Personalized printable question checklist",
+          "1-10 deal score with a visible breakdown"
+        ],
+        "publisher": { "@type": "Organization", "name": "dplooy", "url": "https://www.dplooy.com" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Car Deal Analyzer", "item": "https://cars-compare.dplooy.com/" }
+        ]
+      },
+      {
+        "@type": "HowTo",
+        "name": "How to compare car dealer offers by out-the-door price",
+        "step": [
+          { "@type": "HowToStep", "name": "Enter each offer", "text": "Transcribe each dealer worksheet line by line — MSRP, discounts, rebates, fees, tax — or use Quick mode with just five numbers." },
+          { "@type": "HowToStep", "name": "Set your payoff horizon", "text": "Tell the tool when you actually plan to pay the loan off, not just the contract term. Every number recomputes around it." },
+          { "@type": "HowToStep", "name": "Read the verdict", "text": "The analyzer ranks every offer and financing scenario by total cost of ownership and shows the exact month where rebate-vs-APR flips." },
+          { "@type": "HowToStep", "name": "Take the checklist", "text": "Print the personalized question list built from your numbers and carry it into the dealership." }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is an out-the-door price?",
+            "acceptedAnswer": { "@type": "Answer", "text": "The out-the-door (OTD) price is everything you actually pay: selling price, dealer accessories, doc fee, sales tax, and government title, registration, and plate fees. It is the only number that makes two dealer offers comparable — monthly payments and selling prices can both be manipulated." }
+          },
+          {
+            "@type": "Question",
+            "name": "Should I take the cash rebate or the 0% APR?",
+            "acceptedAnswer": { "@type": "Answer", "text": "It depends on how fast you pay the loan off. The rebate wins when your total interest under the standard rate stays below the rebate amount — which only happens with a short payoff. This tool solves the exact breakeven month for your numbers and shows the crossover on a chart." }
+          },
+          {
+            "@type": "Question",
+            "name": "Are manufacturer rebates taxable?",
+            "acceptedAnswer": { "@type": "Answer", "text": "In most states, yes — sales tax is computed on the price before the rebate, because the state taxes the full consideration even though the manufacturer pays part of it. A few states such as Arizona and Colorado tax the price after the rebate. Dealer discounts are never taxed; they reduce the price itself." }
+          },
+          {
+            "@type": "Question",
+            "name": "What car dealer fees are junk?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Nitrogen fill, VIN etching, appearance and fabric protection, dealer prep on a new vehicle, and market adjustment above MSRP are pure margin and usually removable. Doc fees are legal but capped in many states. Title, registration, and plate fees are set by statute and are legitimate." }
+          },
+          {
+            "@type": "Question",
+            "name": "Is this tool free, and where does my data go?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Free, no signup, no ads. Everything runs in your browser — offers are saved to your device's local storage and never uploaded anywhere. It is an independent calculator, not financial or legal advice." }
+          },
+          {
+            "@type": "Question",
+            "name": "What is a We Owe or Due Bill form?",
+            "acceptedAnswer": { "@type": "Answer", "text": "A signed dealer document listing anything promised but not delivered at signing — an accessory to install, a second key, a repair. If something was promised verbally, get it on a signed We Owe with the VIN and a date. A verbal promise is worth nothing after signing." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="border-b border-hairline bg-paper">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <a href="/" class="font-mono text-sm font-semibold tracking-tight">
+        cars<span class="text-ink-faint">/</span>compare
+      </a>
+      <nav aria-label="Main" class="hidden items-center gap-6 text-[0.8125rem] text-ink-soft sm:flex">
+        <a class="hover:text-ink" href="#how">How it works</a>
+        <a class="hover:text-ink" href="#rebate-vs-apr">Rebate vs 0% APR</a>
+        <a class="hover:text-ink" href="#faq">FAQ</a>
+      </nav>
+      <a href="analyzer.html" class="btn text-[0.75rem]">Open the analyzer</a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <!-- ── Hero ─────────────────────────────────────────────── -->
+    <section class="grid-paper border-b border-hairline">
+      <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:py-20 lg:grid-cols-[3fr_2fr] lg:items-center">
+        <div>
+          <p class="section-code rise rise-1">Form CDA-1 · Free · No signup · Runs in your browser</p>
+          <h1 class="rise rise-2 mt-4 max-w-xl text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
+            Know the real out-the-door price before you sign.
+          </h1>
+          <p class="rise rise-3 mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-ink-soft">
+            Enter each dealer's worksheet. The analyzer normalizes every offer to a true
+            out-the-door number, solves whether the <strong class="text-ink">cash rebate or the 0% APR</strong>
+            actually costs less for <em>your</em> payoff plan, and flags the junk fees —
+            then hands you the questions to ask.
+          </p>
+          <div class="rise rise-4 mt-7 flex flex-wrap gap-3">
+            <a href="analyzer.html" class="btn">Start comparing offers</a>
+            <a href="#how" class="btn btn-ghost">See how it works</a>
+          </div>
+          <p class="rise rise-4 mt-5 font-mono text-[0.6875rem] tracking-wide text-ink-faint">
+            NOT A PAYMENT CALCULATOR · PAYMENT CALCULATORS ARE HOW THEY GET YOU
+          </p>
+        </div>
+
+        <!-- Static worksheet exhibit — real HTML, crawlable -->
+        <figure class="panel panel-strong rise rise-3 p-5" aria-label="Example out-the-door waterfall">
+          <figcaption class="section-code mb-3">Exhibit A — the waterfall</figcaption>
+          <table class="w-full font-mono text-[0.8125rem] tabular">
+            <tbody>
+              <tr><td class="py-1 text-ink-soft">Total MSRP</td><td class="py-1 text-right">36,490.00</td></tr>
+              <tr><td class="py-1 text-ink-soft">Dealer discount</td><td class="py-1 text-right text-good">−3,340.00</td></tr>
+              <tr class="border-t border-hairline"><td class="py-1 font-semibold">Selling price</td><td class="py-1 text-right font-semibold">33,150.00</td></tr>
+              <tr><td class="py-1 text-ink-soft">Doc fee (taxable)</td><td class="py-1 text-right">+250.00</td></tr>
+              <tr><td class="py-1 text-ink-soft">Rebates</td><td class="py-1 text-right text-good">−2,000.00</td></tr>
+              <tr><td class="py-1 text-ink-soft">Sales tax · pre-rebate basis</td><td class="py-1 text-right">+2,505.00</td></tr>
+              <tr><td class="py-1 text-ink-soft">Government fees</td><td class="py-1 text-right">+100.00</td></tr>
+              <tr class="border-t-2 border-ink"><td class="py-1.5 font-semibold">OUT THE DOOR</td><td class="py-1.5 text-right text-base font-semibold">34,005.00</td></tr>
+            </tbody>
+          </table>
+          <p class="mt-3 text-[0.75rem] leading-relaxed text-ink-faint">
+            Most states tax the <span class="text-ink-soft">pre-rebate</span> price. Most calculators miss it.
+            This one doesn't.
+          </p>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ── The three questions ──────────────────────────────── -->
+    <section class="border-b border-hairline bg-raised">
+      <div class="mx-auto max-w-6xl px-4 py-14 sm:py-16">
+        <p class="section-code">§ 01 — What this tool answers</p>
+        <h2 class="mt-3 max-w-2xl text-2xl font-extrabold tracking-tight sm:text-3xl">
+          Three questions dealers profit from leaving fuzzy.
+        </h2>
+        <div class="mt-8 grid gap-px overflow-hidden rounded-[3px] border border-hairline bg-hairline sm:grid-cols-3">
+          <div class="bg-raised p-6">
+            <p class="font-mono text-2xl font-semibold text-ink-faint">1</p>
+            <h3 class="mt-2 font-semibold">What does each offer really cost?</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">
+              Every offer normalized to its all-in, out-the-door number — selling price,
+              accessories, doc fee, correctly computed tax, and TTL — so they're finally comparable.
+            </p>
+          </div>
+          <div class="bg-raised p-6">
+            <p class="font-mono text-2xl font-semibold text-ink-faint">2</p>
+            <h3 class="mt-2 font-semibold">Rebate or the low APR?</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">
+              Solved for how fast <em>you</em> plan to pay it off — not the contract term.
+              The tool finds the exact breakeven month and charts the crossover.
+            </p>
+          </div>
+          <div class="bg-raised p-6">
+            <p class="font-mono text-2xl font-semibold text-ink-faint">3</p>
+            <h3 class="mt-2 font-semibold">What shouldn't be on this worksheet?</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">
+              Nitrogen fill, VIN etching, "appearance protection", market adjustment,
+              doc fees over the legal cap — flagged by dollar impact, with the exact
+              words to challenge each one.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── How it works ─────────────────────────────────────── -->
+    <section id="how" class="border-b border-hairline">
+      <div class="mx-auto max-w-6xl px-4 py-14 sm:py-16">
+        <p class="section-code">§ 02 — Procedure</p>
+        <h2 class="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">How it works</h2>
+        <ol class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <li class="panel p-5">
+            <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">STEP 01</p>
+            <h3 class="mt-2 font-semibold">Transcribe each worksheet</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">The form mirrors a real dealer worksheet top to bottom. Quick mode needs five numbers and sixty seconds; Detailed mode captures every line.</p>
+          </li>
+          <li class="panel p-5">
+            <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">STEP 02</p>
+            <h3 class="mt-2 font-semibold">Set your payoff horizon</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">The slider at the top is the whole game: when will you actually have this paid off? Every figure recomputes live around your answer.</p>
+          </li>
+          <li class="panel p-5">
+            <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">STEP 03</p>
+            <h3 class="mt-2 font-semibold">Read the verdict</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">Every offer × every financing scenario, ranked by total cost of ownership. The winner is named in one sentence with the dollar gap — the work shown underneath.</p>
+          </li>
+          <li class="panel p-5">
+            <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">STEP 04</p>
+            <h3 class="mt-2 font-semibold">Carry in the checklist</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">A printable question list generated from your actual numbers — what to get in writing before you go, what to ask at the desk, what to refuse in the F&amp;I office.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── CTA to the analyzer ──────────────────────────────── -->
+    <section class="grid-paper border-b border-hairline">
+      <div class="mx-auto max-w-6xl px-4 py-14 text-center sm:py-16">
+        <p class="section-code">Ready when you are</p>
+        <h2 class="mx-auto mt-3 max-w-xl text-3xl font-extrabold tracking-tight">
+          Open the analyzer and enter your first offer.
+        </h2>
+        <p class="mx-auto mt-3 max-w-md text-[0.9375rem] text-ink-soft">
+          Quick mode takes five numbers and sixty seconds. Your data never leaves your device.
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+          <a href="analyzer.html" class="btn">Open the analyzer</a>
+          <a href="analyzer.html" class="btn btn-ghost">Try it with the demo deal</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Rebate vs APR explainer (static SEO) ─────────────── -->
+    <section id="rebate-vs-apr" class="bg-raised">
+      <div class="mx-auto max-w-3xl px-4 py-14 sm:py-16">
+        <p class="section-code">§ 03 — Reference</p>
+        <h2 class="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Cash rebate vs 0% APR: the actual math</h2>
+        <div class="mt-6 space-y-4 text-[0.9375rem] leading-relaxed text-ink-soft">
+          <p>
+            The choice is a trade: take the manufacturer's cash and pay interest at the standard rate,
+            or forfeit the cash for free money. Every "which is better" article answers with the
+            contract term — 60 or 72 months of interest versus the rebate. That's the wrong horizon
+            for anyone who pays a loan off early, and early payoff is exactly when the answer flips.
+          </p>
+          <p>
+            The real rule: <strong class="text-ink">the rebate wins only while your cumulative interest
+            stays below the rebate amount.</strong> Interest accrues month by month on the remaining
+            balance, so there is one specific month where the two paths cost the same — the breakeven.
+            Pay off before it, take the cash. Pay off after it, take the rate. This analyzer solves that
+            month for your exact numbers and marks it on the crossover chart.
+          </p>
+          <p>
+            Two traps to check while you're at it. First, some promotional APR offers carry bonus cash
+            of their own — down-payment assistance that partially closes the gap and sometimes flips the
+            answer back. Second, rebates that require financing through the captive lender don't survive
+            a credit-union loan; a scenario built on both is fantasy, and this tool refuses to build it.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FAQ (static, mirrors JSON-LD) ────────────────────── -->
+    <section id="faq" class="border-t border-hairline">
+      <div class="mx-auto max-w-3xl px-4 py-14 sm:py-16">
+        <p class="section-code">§ 04 — FAQ</p>
+        <h2 class="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Frequently asked questions</h2>
+        <div class="mt-6 divide-y divide-hairline border-y border-hairline">
+          <details class="faq py-4">
+            <summary class="flex items-center justify-between gap-4 font-semibold">What is an out-the-door price?<span class="faq-mark font-mono text-ink-faint"></span></summary>
+            <p class="mt-3 text-[0.875rem] leading-relaxed text-ink-soft">Everything you actually pay: selling price, dealer accessories, doc fee, sales tax, and government title, registration, and plate fees. It's the only number that makes two offers comparable — monthly payments and selling prices can both be manipulated.</p>
+          </details>
+          <details class="faq py-4">
+            <summary class="flex items-center justify-between gap-4 font-semibold">Should I take the cash rebate or the 0% APR?<span class="faq-mark font-mono text-ink-faint"></span></summary>
+            <p class="mt-3 text-[0.875rem] leading-relaxed text-ink-soft">Depends how fast you pay it off. The rebate wins while your total interest at the standard rate stays under the rebate amount — which only happens with a short payoff. Enter your numbers in the analyzer and it solves the exact breakeven month.</p>
+          </details>
+          <details class="faq py-4">
+            <summary class="flex items-center justify-between gap-4 font-semibold">Are manufacturer rebates taxable?<span class="faq-mark font-mono text-ink-faint"></span></summary>
+            <p class="mt-3 text-[0.875rem] leading-relaxed text-ink-soft">In most states, yes — tax is computed on the price before the rebate. A few states (Arizona, Colorado, and others) tax after the rebate. Dealer discounts are never taxed; they reduce the price itself. The analyzer carries a rule table for all 50 states plus DC.</p>
+          </details>
+          <details class="faq py-4">
+            <summary class="flex items-center justify-between gap-4 font-semibold">Which dealer fees are junk?<span class="faq-mark font-mono text-ink-faint"></span></summary>
+            <p class="mt-3 text-[0.875rem] leading-relaxed text-ink-soft">Nitrogen fill, VIN etching, appearance and fabric "protection", dealer prep on a new vehicle, and market adjustment above MSRP are near-pure margin. Doc fees are legal but capped in many states — the tool checks yours against your state's cap. Title, registration, and plate fees are set by statute and are real.</p>
+          </details>
+          <details class="faq py-4">
+            <summary class="flex items-center justify-between gap-4 font-semibold">Is it free? Where does my data go?<span class="faq-mark font-mono text-ink-faint"></span></summary>
+            <p class="mt-3 text-[0.875rem] leading-relaxed text-ink-soft">Free, no signup, no ads. Everything runs in your browser; offers save to your device's local storage and never leave it. Export/import as JSON if you switch devices.</p>
+          </details>
+          <details class="faq py-4">
+            <summary class="flex items-center justify-between gap-4 font-semibold">What is a "We Owe" / Due Bill form?<span class="faq-mark font-mono text-ink-faint"></span></summary>
+            <p class="mt-3 text-[0.875rem] leading-relaxed text-ink-soft">A signed dealer document listing anything promised but not delivered at signing. If an accessory or repair was promised verbally, get it on a signed We Owe with the VIN and a date — a verbal promise is worth nothing after you sign.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-hairline bg-raised">
+    <div class="mx-auto max-w-6xl px-4 py-8">
+      <p class="max-w-2xl text-[0.75rem] leading-relaxed text-ink-faint">
+        This is an independent calculator for comparing dealer offers. It is not financial, tax, or
+        legal advice; state tax rules and fee caps change — verify the numbers on your contract before
+        signing. When two scenarios land close together, the tool says so instead of pretending the
+        math is decisive.
+      </p>
+      <p class="mt-4 font-mono text-[0.6875rem] tracking-wide text-ink-faint">
+        © 2026 · BUILT BY THE <a class="underline hover:text-ink" href="https://www.dplooy.com" rel="noopener">DPLOOY</a> TEAM ·
+        HOSTED ON <a class="underline hover:text-ink" href="https://www.dplooy.com" rel="noopener">DPLOOY</a> ·
+        <a class="underline hover:text-ink" href="https://www.dplooy.com/utility" rel="noopener">MORE FREE TOOLS</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

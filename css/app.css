@@ -1,0 +1,185 @@
+/* Car Deal Analyzer — instrument/worksheet aesthetic.
+   Ink on paper. Hairlines. Tabular mono numerals. Color = meaning only. */
+
+:root {
+  --ink: #16191d;
+  --ink-soft: #4a5058;
+  --ink-faint: #8a9099;
+  --paper: #fafaf8;
+  --paper-raised: #ffffff;
+  --hairline: #d8dad6;
+  --hairline-strong: #16191d;
+  --good: #0a7d43;
+  --good-wash: #e9f5ee;
+  --bad: #c22f21;
+  --bad-wash: #fbeeec;
+  --warn: #9a5b00;
+  --warn-wash: #faf3e4;
+  --accent: #1f4fd8;
+  --accent-wash: #ecf1fd;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Public Sans", system-ui, -apple-system, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-feature-settings: "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Graph-paper ground for the hero and chart regions */
+.grid-paper {
+  background-image:
+    linear-gradient(to right, rgba(22, 25, 29, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(22, 25, 29, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.mono { font-family: var(--mono); }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Section code eyebrows — the form-number motif */
+.section-code {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ── Worksheet form controls ─────────────────────────────────── */
+.field-row { display: grid; grid-template-columns: 2rem 1fr minmax(7.5rem, 11rem); gap: 0.5rem; align-items: center; }
+.field-num { font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-faint); }
+.field-label { font-size: 0.8125rem; color: var(--ink-soft); }
+
+.cell {
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  text-align: right;
+  background: var(--paper-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.625rem 0.625rem;
+  width: 100%;
+  min-height: 44px;
+  color: var(--ink);
+  transition: border-color 120ms ease;
+}
+.cell::placeholder { color: #b9bec5; }
+.cell:hover { border-color: var(--ink-faint); }
+.cell:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.cell.cell-text { text-align: left; }
+select.cell { text-align: left; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a5058' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
+
+.btn {
+  font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.04em;
+  min-height: 44px; padding: 0 1.125rem; border-radius: 2px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  border: 1px solid var(--hairline-strong); background: var(--ink); color: var(--paper);
+  cursor: pointer; transition: transform 100ms ease, background 120ms ease;
+}
+.btn:hover { background: #2b3037; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-ghost { background: transparent; color: var(--ink); }
+.btn-ghost:hover { background: rgba(22, 25, 29, 0.06); }
+.btn-danger { background: transparent; color: var(--bad); border-color: var(--bad); }
+.btn-danger:hover { background: var(--bad-wash); }
+
+/* ── Panels ──────────────────────────────────────────────────── */
+.panel { background: var(--paper-raised); border: 1px solid var(--hairline); border-radius: 3px; }
+.panel-strong { border-color: var(--hairline-strong); }
+
+/* ── Payoff horizon slider — the app's most important control ── */
+.horizon-bar {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--ink); color: var(--paper);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+}
+input[type="range"].horizon {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; cursor: pointer;
+}
+input[type="range"].horizon::-webkit-slider-runnable-track {
+  height: 4px; background: rgba(250, 250, 248, 0.28); border-radius: 0;
+}
+input[type="range"].horizon::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 26px; height: 26px; margin-top: -11px;
+  background: var(--paper); border: 3px solid var(--ink); border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--paper);
+}
+input[type="range"].horizon::-moz-range-track { height: 4px; background: rgba(250, 250, 248, 0.28); }
+input[type="range"].horizon::-moz-range-thumb {
+  width: 22px; height: 22px; background: var(--paper); border: 3px solid var(--ink); border-radius: 50%;
+}
+input[type="range"].horizon:focus-visible { outline: 2px solid #9db4f5; outline-offset: 4px; }
+
+/* ── Comparison table ────────────────────────────────────────── */
+.compare-wrap { overflow-x: auto; }
+.compare { border-collapse: collapse; min-width: 100%; }
+.compare th, .compare td {
+  border-bottom: 1px solid var(--hairline);
+  padding: 0.625rem 0.875rem; font-size: 0.8125rem; text-align: right;
+  white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+.compare th { font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+.compare td:first-child, .compare th:first-child {
+  position: sticky; left: 0; background: var(--paper-raised); text-align: left;
+  font-family: var(--sans); color: var(--ink-soft); z-index: 1;
+  border-right: 1px solid var(--hairline); max-width: 11rem; white-space: normal;
+}
+.compare .row-headline td { font-size: 1rem; font-weight: 600; border-top: 2px solid var(--hairline-strong); border-bottom: 2px solid var(--hairline-strong); padding-top: 0.875rem; padding-bottom: 0.875rem; }
+.win { color: var(--good); position: relative; }
+.win::after { content: "▸ best"; display: block; font-size: 0.5625rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--good); }
+
+/* ── Flags ───────────────────────────────────────────────────── */
+.flag { border-left: 3px solid var(--hairline); }
+.flag-critical { border-left-color: var(--bad); background: var(--bad-wash); }
+.flag-high { border-left-color: var(--bad); }
+.flag-medium { border-left-color: var(--warn); }
+.flag-low { border-left-color: var(--ink-faint); }
+
+/* ── Verdict block ───────────────────────────────────────────── */
+.verdict { border: 2px solid var(--good); background: var(--good-wash); }
+.verdict.verdict-close { border-color: var(--warn); background: var(--warn-wash); }
+
+/* ── Score bars ──────────────────────────────────────────────── */
+.scorebar { height: 6px; background: var(--hairline); border-radius: 0; overflow: hidden; }
+.scorebar > span { display: block; height: 100%; background: var(--ink); }
+
+/* ── Landing reveals (CSS only, staggered) ───────────────────── */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.rise-1 { animation-delay: 0.05s; } .rise-2 { animation-delay: 0.14s; }
+.rise-3 { animation-delay: 0.23s; } .rise-4 { animation-delay: 0.32s; }
+
+/* Chart */
+.chart-svg text { font-family: var(--mono); }
+.chart-svg .axis { stroke: var(--hairline); }
+.chart-svg .tick-label { fill: var(--ink-faint); font-size: 10px; }
+
+/* Checklist print view */
+@media print {
+  body * { visibility: hidden; }
+  #print-checklist, #print-checklist * { visibility: visible; }
+  #print-checklist { position: absolute; left: 0; top: 0; width: 100%; padding: 1rem; }
+  #print-checklist .no-print { display: none; }
+}
+
+details.faq summary { cursor: pointer; list-style: none; }
+details.faq summary::-webkit-details-marker { display: none; }
+details.faq summary .faq-mark::before { content: "+"; }
+details.faq[open] summary .faq-mark::before { content: "−"; }
+
+/* Skip link */
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; }
+.skip-link:focus { left: 0.5rem; top: 0.5rem; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; }
