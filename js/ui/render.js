@@ -336,7 +336,7 @@
       <div class="verdict ${v.isCloseCall ? "verdict-close" : ""} p-5 sm:p-6">
         <p class="font-mono text-[0.625rem] tracking-[0.14em] ${v.isCloseCall ? "text-warn" : "text-good"}">${v.isCloseCall ? "TOO CLOSE TO CALL ON PRICE ALONE" : "THE VERDICT"}</p>
         <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(v.text)}</p>
-        ${v.breakevenMonth ? `<p class="mt-2 font-mono text-[0.75rem] text-ink-soft">BREAKEVEN AT MONTH ${v.breakevenMonth} · YOUR HORIZON ${state.horizon} · GAP ${fmt0(v.gap)}</p>` : ""}
+        ${v.breakevenMonth ? `<p class="mt-2 font-mono text-[0.75rem] text-ink-soft">ANSWER FLIPS AT MONTH ${v.breakevenMonth} · YOU SAID ${state.horizon} · DIFFERENCE ${fmt0(v.gap)}</p>` : ""}
       </div>`
 
     const curves = offer.scenarios.map((s) => ({ label: s.label, points: costCurve(offer, s) }))

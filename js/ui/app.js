@@ -39,7 +39,7 @@
 
   function updateHorizonReadout() {
     const out = document.querySelector("#horizon-value")
-    if (out) out.textContent = state.horizon + " MO"
+    if (out) out.textContent = state.horizon + " MONTHS"
   }
 
   // rAF-coalesced derived re-render — the slider must feel instant
