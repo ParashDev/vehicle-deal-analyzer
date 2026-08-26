@@ -38,8 +38,9 @@
         <div class="panel grid-paper p-8 text-center">
           <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">NO OFFERS YET</p>
           <p class="mx-auto mt-3 max-w-md text-[0.9375rem] text-ink-soft">
-            Add a quick offer with five numbers, transcribe a full worksheet, or load the
-            demo deal to see everything working.
+            <strong class="text-ink">Full worksheet</strong> is the real tool — sticker price,
+            dealer discount, rebates, add-ons, fees, and every way to pay. Quick compare is for
+            checking bottom-line quotes in a hurry. Load the demo deal to see it all filled in.
           </p>
         </div>`
       return
@@ -102,13 +103,13 @@
           ${moneyField("04", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
         </div>
         ${scenarioEditor(offer, p)}
-        <p class="text-[0.75rem] leading-relaxed text-ink-faint">Quick mode trusts your OTD number as-is. For the fee-by-fee breakdown, tax check, and junk-fee detection, add a Detailed offer instead.</p>
+        <p class="border-l-2 border-warn bg-warn-wash px-3 py-2 text-[0.8125rem] leading-relaxed text-warn">Quick compare only checks bottom-line quotes. To enter <strong>dealer discounts, rebates (Ford/Toyota cash), add-ons, and fees</strong>, use the <strong>Full worksheet</strong> button instead — that's where the real analysis happens.</p>
       </div>`
     }
 
     return `<div class="grid gap-7 px-4 py-5 sm:px-5">
       <section class="grid gap-2.5">
-        <p class="section-code">A — Basics &amp; tax jurisdiction</p>
+        <p class="section-code">A — Dealer &amp; your state</p>
         <div class="field-row"><span class="field-num">01</span>
           <label class="field-label">Dealer / label</label>
           <input class="cell cell-text" data-path="${p}.label" data-type="text" value="${esc(offer.label)}" /></div>
@@ -130,24 +131,24 @@
       </section>
 
       <section class="grid gap-2.5">
-        <p class="section-code">B — Price (from the sticker and the worksheet)</p>
-        ${moneyField("06", "Total MSRP (bottom of window sticker)", `${p}.msrp`, offer.msrp)}
-        ${moneyField("07", "Factory discount already on the sticker", `${p}.factoryDiscount`, offer.factoryDiscount)}
-        ${moneyField("08", "Dealer discount (their own money)", `${p}.dealerDiscount`, offer.dealerDiscount)}
-        ${moneyField("09", "Market adjustment / ADM above MSRP", `${p}.marketAdjustment`, offer.marketAdjustment)}
+        <p class="section-code">B — Price &amp; discounts</p>
+        ${moneyField("06", "Sticker price — the Total MSRP at the bottom of the window sticker", `${p}.msrp`, offer.msrp)}
+        ${moneyField("07", "Discount already printed ON the sticker (0 if none)", `${p}.factoryDiscount`, offer.factoryDiscount)}
+        ${moneyField("08", "Dealer discount — money the dealer takes off", `${p}.dealerDiscount`, offer.dealerDiscount)}
+        ${moneyField("09", "Dealer markup ABOVE sticker price (0 if none)", `${p}.marketAdjustment`, offer.marketAdjustment)}
       </section>
 
       <section class="grid gap-2.5">
         <div class="flex items-center justify-between">
-          <p class="section-code">C — Rebates &amp; incentives</p>
-          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-rebate" data-id="${offer.id}">+ Rebate</button>
+          <p class="section-code">C — Rebates <span class="normal-case">(Ford, Toyota, GM cash offers — any money the manufacturer takes off)</span></p>
+          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-rebate" data-id="${offer.id}">+ Add rebate</button>
         </div>
         ${offer.rebates.map((r, ri) => `
           <div class="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2 sm:grid-cols-[1fr_8rem_auto_2.5rem]">
             <input class="cell cell-text" data-path="${p}.rebates.${ri}.label" data-type="text" value="${esc(r.label)}" placeholder="Retail Bonus Cash" />
             <input class="cell" inputmode="decimal" data-path="${p}.rebates.${ri}.amount" data-type="money" value="${r.amount}" />
-            <label class="hidden items-center gap-1.5 text-[0.6875rem] text-ink-soft sm:flex">
-              <input type="checkbox" data-path="${p}.rebates.${ri}.requiresCaptiveFinancing" data-type="bool" ${r.requiresCaptiveFinancing ? "checked" : ""} />captive only
+            <label class="hidden items-center gap-1.5 text-[0.6875rem] text-ink-soft sm:flex" title="Some rebates only apply if you finance through the brand's own lender (Ford Credit, GM Financial, Toyota Financial)">
+              <input type="checkbox" data-path="${p}.rebates.${ri}.requiresCaptiveFinancing" data-type="bool" ${r.requiresCaptiveFinancing ? "checked" : ""} />needs their financing
             </label>
             <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.rebates" data-index="${ri}" aria-label="Remove rebate">×</button>
           </div>`).join("") || `<p class="text-[0.8125rem] text-ink-faint">None entered.</p>`}
@@ -155,8 +156,8 @@
 
       <section class="grid gap-2.5">
         <div class="flex items-center justify-between">
-          <p class="section-code">D — Dealer accessories &amp; add-ons <span class="normal-case">(charged + what it's really worth)</span></p>
-          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-accessory" data-id="${offer.id}">+ Add-on</button>
+          <p class="section-code">D — Dealer options &amp; add-ons <span class="normal-case">(tint, protection packages… what they charge vs what it's worth)</span></p>
+          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-accessory" data-id="${offer.id}">+ Add option</button>
         </div>
         ${offer.accessories.map((a, ai) => `
           <div class="grid grid-cols-[1fr_6.5rem_6.5rem_2.5rem] items-center gap-2">
@@ -189,7 +190,7 @@
       </section>
 
       <section class="grid gap-2.5">
-        <p class="section-code">F — Money down &amp; trade</p>
+        <p class="section-code">F — Down payment &amp; trade-in</p>
         ${moneyField("10", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
         ${moneyField("11", "Trade-in value offered", `${p}.financing.tradeInValue`, offer.financing.tradeInValue)}
         ${moneyField("12", "Trade-in loan payoff", `${p}.financing.tradeInPayoff`, offer.financing.tradeInPayoff)}
@@ -209,10 +210,16 @@
   function scenarioEditor(offer, p) {
     return `
     <section class="grid gap-2.5">
-      <div class="flex items-center justify-between">
-        <p class="section-code">G — Financing scenarios <span class="normal-case">(the mutually exclusive money paths)</span></p>
-        <button class="btn btn-ghost text-[0.6875rem]" data-action="add-scenario" data-id="${offer.id}">+ Scenario</button>
+      <div class="flex items-center justify-between gap-3">
+        <p class="section-code">G — Ways to pay</p>
+        <button class="btn btn-ghost text-[0.6875rem]" data-action="add-scenario" data-id="${offer.id}">+ Add a way to pay</button>
       </div>
+      <p class="text-[0.8125rem] leading-relaxed text-ink-soft">
+        Dealers usually give you a choice: <strong class="text-ink">keep the rebates at a normal
+        rate</strong>, or <strong class="text-ink">give up the rebates for 0% / low APR</strong>.
+        Add each option they offer, and tick which rebates each one keeps — the tool tells you
+        which choice actually costs less.
+      </p>
       ${offer.scenarios.map((s, si) => `
         <div class="panel grid gap-2 p-3">
           <div class="grid grid-cols-[1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_6.5rem_2.5rem]">
@@ -235,7 +242,7 @@
               </label>`).join("")}
           </div>` : ""}
         </div>`).join("")}
-      <p class="text-[0.6875rem] font-mono tracking-wide text-ink-faint">APR · TERM MO · BONUS CASH — check which rebates survive in each path</p>
+      <p class="text-[0.6875rem] font-mono tracking-wide text-ink-faint">THE 3 NUMBER BOXES = APR % · MONTHS · BONUS CASH (if the 0% offer includes extra cash)</p>
     </section>`
   }
 
