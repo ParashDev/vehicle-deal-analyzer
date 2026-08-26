@@ -214,12 +214,17 @@
         <p class="section-code">G — Ways to pay</p>
         <button class="btn btn-ghost text-[0.6875rem]" data-action="add-scenario" data-id="${offer.id}">+ Add a way to pay</button>
       </div>
-      <p class="text-[0.8125rem] leading-relaxed text-ink-soft">
-        Dealers usually give you a choice: <strong class="text-ink">keep the rebates at a normal
-        rate</strong>, or <strong class="text-ink">give up the rebates for 0% / low APR</strong>.
-        Add each option they offer, and tick which rebates each one keeps — the tool tells you
-        which choice actually costs less.
-      </p>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <div class="border border-hairline bg-paper px-3 py-2 rounded-[2px]">
+          <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 1</p>
+          <p class="mt-0.5 text-[0.8125rem] font-medium">Keep the rebates, pay the normal rate</p>
+        </div>
+        <div class="border border-hairline bg-paper px-3 py-2 rounded-[2px]">
+          <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 2</p>
+          <p class="mt-0.5 text-[0.8125rem] font-medium">Give up the rebates, get 0% / low APR</p>
+        </div>
+      </div>
+      <p class="text-[0.8125rem] text-ink-soft">Add each choice the dealer offers. Tick the rebates it keeps. The tool shows which one costs less.</p>
       ${offer.scenarios.map((s, si) => `
         <div class="panel grid gap-2 p-3">
           <div class="grid grid-cols-[1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_6.5rem_2.5rem]">
