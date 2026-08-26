@@ -333,6 +333,9 @@
     const rule = getStateRule(offer.taxJurisdiction.stateCode)
     const notes = []
     notes.push("Every line above comes straight from what you entered — check it against the dealer's worksheet line by line.")
+    if (offer.scenarios.length) {
+      notes.push("The monthly payment is our math, not the dealer's quote: the amount financed, amortized at the APR and months you entered. If the dealer quotes a higher payment for the same numbers, something is buried in it — ask why.")
+    }
     if (scenarios.length > 1 && offer.rebates.length) {
       notes.push("The cards differ only in the rebate line: that's the rebate-vs-low-APR trade, in dollars, before financing even starts.")
     }
