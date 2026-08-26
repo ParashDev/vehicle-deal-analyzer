@@ -92,10 +92,13 @@
         break
       }
       case "load-demo": {
-        const offer = demoOffer()
-        state.offers.push(offer)
+        // Two dealers, each with both ways to pay — shows the dealer-vs-dealer
+        // banner, the flags, and the crossover chart all at once
+        const first = demoOffer()
+        state.offers.push(first)
+        state.offers.push(CDA.demoOffer2())
         state.expandedOfferId = null
-        state.chartOfferId = offer.id
+        state.chartOfferId = first.id
         structuralRender()
         break
       }

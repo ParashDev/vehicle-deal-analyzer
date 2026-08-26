@@ -293,6 +293,7 @@
     $("#checklist-section").classList.toggle("hidden", !has)
 
     if (results.length >= 2) renderComparison(results)
+    renderDealerVerdict(results)
     renderChart()
     if (has) { renderFlags(); renderScores(); renderChecklist() }
   }
@@ -320,6 +321,36 @@
         <tr><td>Balance cleared at month ${state.horizon}</td>${results.map((r) => `<td>${r.balanceAtHorizon ? fmt(r.balanceAtHorizon) : "—"}</td>`).join("")}</tr>
       </tbody>
     </table>`
+  }
+
+  // Which DEALER wins: best row per offer, ranked. Only renders once two or
+  // more different dealers are entered — the per-offer verdict handles the
+  // rebate-vs-APR question within one offer.
+  function renderDealerVerdict(results) {
+    const host = $("#dealer-verdict")
+    if (!host) return
+    const bestPerOffer = new Map()
+    for (const r of results) {
+      if (!bestPerOffer.has(r.offerId)) bestPerOffer.set(r.offerId, r) // results arrive sorted
+    }
+    const bests = Array.from(bestPerOffer.values()).sort((a, b) => a.totalCost - b.totalCost)
+    if (bests.length < 2) { host.innerHTML = ""; return }
+    const winner = bests[0], runnerUp = bests[1]
+    const gap = Math.round(runnerUp.totalCost - winner.totalCost)
+    if (gap < 200) {
+      host.innerHTML = `
+        <div class="verdict verdict-close p-5">
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-warn">DEALER VS DEALER — TOO CLOSE TO CALL</p>
+          <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(winner.offerLabel)} and ${esc(runnerUp.offerLabel)} land within ${fmt0(gap)} of each other by your payoff date. Pick on the non-money stuff: which dealer puts it in writing, has the actual unit, and doesn't play games at the desk.</p>
+        </div>`
+      return
+    }
+    host.innerHTML = `
+      <div class="verdict p-5">
+        <p class="font-mono text-[0.625rem] tracking-[0.14em] text-good">BEST DEAL</p>
+        <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(winner.offerLabel)} wins — ${fmt0(gap)} less than ${esc(runnerUp.offerLabel)} by your payoff date, paying via &ldquo;${esc(winner.scenarioLabel)}&rdquo;.</p>
+        <p class="mt-2 font-mono text-[0.75rem] text-ink-soft">${esc(winner.offerLabel).toUpperCase()} TOTAL ${fmt0(winner.totalCost)} · ${esc(runnerUp.offerLabel).toUpperCase()} TOTAL ${fmt0(runnerUp.totalCost)}</p>
+      </div>`
   }
 
   function chartFocusOffer() {

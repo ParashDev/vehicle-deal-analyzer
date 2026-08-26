@@ -111,6 +111,39 @@
     }
   }
 
+  // Second demo dealer: same truck, weaker discount, a junk add-on or two,
+  // slightly higher rate — so the demo shows dealer-vs-dealer ranking, the
+  // flags firing, and different scores, not just one clean worksheet.
+  function demoOffer2() {
+    const rebateId = uid("rb")
+    return {
+      id: uid("offer"), mode: "detailed", label: "Northgate Chevrolet (demo)", dealerName: "Northgate Chevrolet",
+      vehicle: { year: 2026, make: "Chevrolet", model: "Colorado", trim: "LT Crew Cab 2WD", vin: "", stockNumber: "DEMO-0002", daysOnLot: 82 },
+      msrp: 36490, factoryDiscount: 750, dealerDiscount: 2600, marketAdjustment: 0,
+      rebates: [
+        { id: rebateId, label: "Retail Bonus Cash", amount: 2000, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false },
+      ],
+      accessories: [
+        { id: uid("acc"), label: "Appearance Protection Package", charged: 499, retailValue: 50, isNegotiable: true, category: "junk" },
+        { id: uid("acc"), label: "Nitrogen Fill", charged: 199, retailValue: 0, isNegotiable: true, category: "junk" },
+      ],
+      fees: [
+        { id: uid("fee"), label: "Doc Fee", amount: 250, category: "doc", isTaxable: true },
+        { id: uid("fee"), label: "Title", amount: 15, category: "government", isTaxable: false },
+        { id: uid("fee"), label: "Registration", amount: 66, category: "government", isTaxable: false },
+        { id: uid("fee"), label: "Plate", amount: 4.5, category: "government", isTaxable: false },
+        { id: uid("fee"), label: "Electronic Filing", amount: 14.5, category: "government", isTaxable: false },
+      ],
+      financing: { downPayment: 8000, tradeInValue: 0, tradeInPayoff: 0, apr: 6.49, termMonths: 72, isSimpleInterest: true, hasPrepaymentPenalty: false },
+      taxJurisdiction: { stateCode: "OH", salesTaxRate: 0.075, extraTaxes: [] },
+      dealerStatedTax: null,
+      scenarios: [
+        { id: uid("sc"), label: "Take $2,000 rebate @ 6.49%", apr: 6.49, termMonths: 72, rebatesApplied: [rebateId], bonusCash: 0 },
+        { id: uid("sc"), label: "0% APR, forfeit rebates", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
+      ],
+    }
+  }
+
   function setPath(obj, path, value) {
     const parts = path.split(".")
     let target = obj
@@ -135,5 +168,5 @@
     persist()
   }
 
-  Object.assign(CDA, { state, load, persist, detailedOffer, quickOffer, demoOffer, setPath, getPath, exportJson, importJson })
+  Object.assign(CDA, { state, load, persist, detailedOffer, quickOffer, demoOffer, demoOffer2, setPath, getPath, exportJson, importJson })
 })(window.CDA = window.CDA || {})
