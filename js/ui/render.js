@@ -186,6 +186,7 @@
             </label>
             <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.fees" data-index="${fi}" aria-label="Remove fee">×</button>
           </div>`).join("")}
+        <p class="text-[0.6875rem] leading-relaxed text-ink-faint">Title &amp; registration are pre-filled with your state's typical amounts — overwrite them with the dealer's exact numbers once you have the worksheet. These are set by law, so a number far above ours gets flagged.</p>
       </section>
 
       <section class="grid gap-2.5">
@@ -214,16 +215,18 @@
         <button class="btn btn-ghost text-[0.6875rem]" data-action="add-scenario" data-id="${offer.id}">+ Add a way to pay</button>
       </div>
       <div class="grid gap-2 sm:grid-cols-2">
-        <div class="border border-hairline bg-paper px-3 py-2 rounded-[2px]">
-          <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 1</p>
+        <button type="button" data-action="add-scenario-preset" data-preset="keep" data-id="${offer.id}"
+          class="rounded-[2px] border border-hairline bg-paper px-3 py-2 text-left transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+          <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 1 · TAP TO ADD</p>
           <p class="mt-0.5 text-[0.8125rem] font-medium">Keep the rebates, pay the normal rate</p>
-        </div>
-        <div class="border border-hairline bg-paper px-3 py-2 rounded-[2px]">
-          <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 2</p>
+        </button>
+        <button type="button" data-action="add-scenario-preset" data-preset="zero" data-id="${offer.id}"
+          class="rounded-[2px] border border-hairline bg-paper px-3 py-2 text-left transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+          <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 2 · TAP TO ADD</p>
           <p class="mt-0.5 text-[0.8125rem] font-medium">Give up the rebates, get 0% / low APR</p>
-        </div>
+        </button>
       </div>
-      <p class="text-[0.8125rem] text-ink-soft">Add each choice the dealer offers. Tick the rebates it keeps. The tool shows which one costs less.</p>
+      <p class="text-[0.8125rem] text-ink-soft">Tap a choice to add it pre-filled, then fix the APR and months to the dealer's exact offer. The tool shows which one costs less.</p>
       ${offer.scenarios.map((s, si) => `
         <div class="panel grid gap-2 p-3">
           <div class="grid grid-cols-[1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_6.5rem_2.5rem]">

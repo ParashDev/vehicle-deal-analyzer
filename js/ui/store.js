@@ -41,11 +41,14 @@
     return { downPayment: 0, tradeInValue: 0, tradeInPayoff: 0, apr: 0, termMonths: 60, isSimpleInterest: true, hasPrepaymentPenalty: false }
   }
 
-  function standardFees() {
+  function standardFees(stateCode) {
+    // Title/registration start at the state's typical statutory amounts —
+    // estimates the user overwrites with the dealer's exact numbers
+    const rule = CDA.getStateRule(stateCode || "TX")
     return [
       { id: uid("fee"), label: "Doc Fee", amount: 0, category: "doc", isTaxable: true },
-      { id: uid("fee"), label: "Title", amount: 0, category: "government", isTaxable: false },
-      { id: uid("fee"), label: "Registration", amount: 0, category: "government", isTaxable: false },
+      { id: uid("fee"), label: "Title", amount: rule ? rule.titleFee : 0, category: "government", isTaxable: false },
+      { id: uid("fee"), label: "Registration", amount: rule ? rule.regTypical : 0, category: "government", isTaxable: false },
     ]
   }
 
@@ -58,9 +61,9 @@
       financing: blankFinancing(),
       taxJurisdiction: { stateCode: "TX", salesTaxRate: 0.0625, extraTaxes: [] },
       dealerStatedTax: null,
-      scenarios: [
-        { id: uid("sc"), label: "As quoted", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
-      ],
+      // Starts empty — the "typical choice" chips in section G add pre-filled
+      // ways to pay, so a default row here would just be noise
+      scenarios: [],
     }
   }
 

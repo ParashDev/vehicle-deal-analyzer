@@ -125,7 +125,25 @@
         withOffer(id, (o) => o.fees.push({ id: uid("fee"), label: "", amount: 0, category: "dealer-junk", isTaxable: true }))
         break
       case "add-scenario":
-        withOffer(id, (o) => o.scenarios.push({ id: uid("sc"), label: "Scenario " + (o.scenarios.length + 1), apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 }))
+        withOffer(id, (o) => o.scenarios.push({ id: uid("sc"), label: "Way to pay " + (o.scenarios.length + 1), apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 }))
+        break
+      case "add-scenario-preset":
+        withOffer(id, (o) => {
+          if (btn.dataset.preset === "zero") {
+            o.scenarios.push({ id: uid("sc"), label: "0% APR, give up rebates", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 })
+          } else {
+            // Keep every rebate entered so far, at the offer's quoted rate
+            const apr = o.financing.apr || 6.99
+            o.scenarios.push({
+              id: uid("sc"),
+              label: "Keep rebates @ " + apr + "%",
+              apr,
+              termMonths: o.financing.termMonths || 72,
+              rebatesApplied: o.rebates.map((r) => r.id),
+              bonusCash: 0,
+            })
+          }
+        })
         break
       case "remove-item": {
         const list = getPath(state, btn.dataset.list || "")
@@ -277,7 +295,16 @@
       const offer = getPath(state, offerPath)
       if (offer) {
         const rule = getStateRule(String(value))
-        if (rule) offer.taxJurisdiction.salesTaxRate = rule.baseRate
+        if (rule) {
+          offer.taxJurisdiction.salesTaxRate = rule.baseRate
+          // Title/registration re-seed to the new state's typical statutory
+          // amounts — the user overwrites with the dealer's exact numbers
+          for (const fee of offer.fees) {
+            if (fee.category !== "government") continue
+            if (/title/i.test(fee.label)) fee.amount = rule.titleFee
+            else if (/regist/i.test(fee.label)) fee.amount = rule.regTypical
+          }
+        }
       }
     }
   }

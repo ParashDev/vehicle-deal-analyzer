@@ -25,12 +25,15 @@
       message: "Dealer tint is typically billed at 2–3× an independent shop's price. Negotiable or removable." },
   ]
 
-  const GOV_FEE_RANGES = [
-    { match: /title/i, max: 100 },
-    { match: /regist/i, max: 400 },
-    { match: /plate/i, max: 60 },
-    { match: /inspect/i, max: 80 },
-  ]
+  // Per-state where we have seeds (title is statutory-flat; registration
+  // varies with vehicle, so the limit is generous), generic for the rest.
+  function govFeeLimit(label, rule) {
+    if (rule && /title/i.test(label)) return { limit: rule.titleFee * 1.5 + 15, expected: rule.titleFee }
+    if (rule && /regist/i.test(label)) return { limit: rule.regTypical * 2.5 + 50, expected: rule.regTypical }
+    if (/plate/i.test(label)) return { limit: 60, expected: 25 }
+    if (/inspect/i.test(label)) return { limit: 80, expected: 40 }
+    return null
+  }
 
   // Doc fee — three outcomes: fine / negotiable / illegal (above cap).
   function checkDocFee(docFeeAmount, stateCode) {
@@ -88,12 +91,13 @@
       if (docFlag) flags.push(docFlag)
     }
 
+    const stateRule = getStateRule(offer.taxJurisdiction.stateCode)
     for (const fee of offer.fees.filter((f) => f.category === "government")) {
-      const range = GOV_FEE_RANGES.find((r) => r.match.test(fee.label))
-      if (range && fee.amount > range.max) {
+      const check = govFeeLimit(fee.label, stateRule)
+      if (check && fee.amount > check.limit) {
         flags.push({
           id: fee.id, kind: "gov-fee", severity: "medium", label: fee.label, amount: fee.amount,
-          message: fee.label + " of $" + fee.amount.toFixed(0) + " is above the usual statutory range (≤ ~$" + range.max + "). Ask for the state's fee schedule — these are fixed by law, not by the dealer.",
+          message: fee.label + " of $" + fee.amount.toFixed(0) + " is well above the " + (stateRule ? stateRule.name : "state") + " typical (~$" + check.expected + "). These are fixed by law, not by the dealer — ask for the state's fee schedule.",
         })
       }
     }
