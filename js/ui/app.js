@@ -268,12 +268,14 @@
     }
     setPath(state, path, value)
 
-    // Selecting a state seeds the rate field with the state's base rate if
-    // the user hasn't typed one yet
+    // Changing the state ALWAYS resets the rate to that state's base rate —
+    // a rate typed for another state is meaningless here, and the previous
+    // only-if-empty seeding left the old state's rate silently in place.
+    // The user then adds their county/city % on top if there is one.
     if (type === "state") {
       const offerPath = path.split(".").slice(0, 2).join(".")
       const offer = getPath(state, offerPath)
-      if (offer && (!offer.taxJurisdiction.salesTaxRate || offer.taxJurisdiction.salesTaxRate === 0)) {
+      if (offer) {
         const rule = getStateRule(String(value))
         if (rule) offer.taxJurisdiction.salesTaxRate = rule.baseRate
       }
