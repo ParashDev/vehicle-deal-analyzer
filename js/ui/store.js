@@ -164,7 +164,7 @@
 
   function importJson(raw) {
     const parsed = JSON.parse(raw)
-    if (!parsed || !Array.isArray(parsed.offers)) throw new Error("Not a Car Deal Analyzer export")
+    if (!parsed || !Array.isArray(parsed.offers)) throw new Error("Not a Vehicle Deal Analyzer export")
     state.offers = parsed.offers
     if (parsed.horizon) state.horizon = parsed.horizon
     state.chartOfferId = null

@@ -125,7 +125,7 @@
           <label class="field-label">Dealer's stated tax <span class="text-ink-faint">(optional — pins their number)</span></label>
           <input class="cell" inputmode="decimal" data-path="${p}.dealerStatedTax" data-type="money-null" value="${offer.dealerStatedTax != null ? offer.dealerStatedTax : ""}" placeholder="leave blank" /></div>
         <div class="field-row"><span class="field-num">05</span>
-          <label class="field-label">Days this VIN has been on the lot</label>
+          <label class="field-label">Days this vehicle has been on the lot</label>
           <input class="cell" inputmode="numeric" data-path="${p}.vehicle.daysOnLot" data-type="int-null" value="${offer.vehicle.daysOnLot != null ? offer.vehicle.daysOnLot : ""}" placeholder="ask them" /></div>
         ${rule && rule.specialCase ? `<p class="border-l-2 border-warn bg-warn-wash px-3 py-2 text-[0.75rem] leading-relaxed text-warn">${esc(rule.name)} uses a special tax regime (${esc(rule.notes)}) — treat the computed tax as a rough estimate and lean on the dealer's stated number.</p>` : ""}
       </section>

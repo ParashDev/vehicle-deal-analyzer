@@ -11,7 +11,7 @@
       { text: "Can you send an itemized buyer's order showing selling price, rebates, doc fee, tax, and TTL as separate lines?" },
       { text: "Which specific rebates are included, and do any require financing through the captive lender?" },
       { text: "Is this price contingent on financing with you?" },
-      { text: "How many days has this VIN been on your lot?" },
+      { text: "How many days has this vehicle been on your lot?" },
     ]
 
     if (offer.rebates.some((r) => r.requiresCaptiveFinancing)) {

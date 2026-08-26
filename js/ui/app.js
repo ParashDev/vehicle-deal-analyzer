@@ -160,7 +160,7 @@
         const blob = new Blob([exportJson()], { type: "application/json" })
         const a = document.createElement("a")
         a.href = URL.createObjectURL(blob)
-        a.download = "car-deals-" + new Date().toISOString().slice(0, 10) + ".json"
+        a.download = "vehicle-deals-" + new Date().toISOString().slice(0, 10) + ".json"
         a.click()
         URL.revokeObjectURL(a.href)
         break
@@ -225,7 +225,7 @@
     if (el instanceof HTMLInputElement && el.dataset.action === "import-json" && el.files && el.files[0]) {
       el.files[0].text().then((raw) => {
         try { importJson(raw); structuralRender() }
-        catch (err) { alert("That file isn't a Car Deal Analyzer export.") }
+        catch (err) { alert("That file isn't a Vehicle Deal Analyzer export.") }
       })
       return
     }
