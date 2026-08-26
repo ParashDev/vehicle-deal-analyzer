@@ -132,10 +132,9 @@
 
       <section class="grid gap-2.5">
         <p class="section-code">B — Price &amp; discounts</p>
-        ${moneyField("06", "Sticker price — the Total MSRP at the bottom of the window sticker", `${p}.msrp`, offer.msrp)}
-        ${moneyField("07", "Discount already printed ON the sticker (0 if none)", `${p}.factoryDiscount`, offer.factoryDiscount)}
-        ${moneyField("08", "Dealer discount — money the dealer takes off", `${p}.dealerDiscount`, offer.dealerDiscount)}
-        ${moneyField("09", "Dealer markup ABOVE sticker price (0 if none)", `${p}.marketAdjustment`, offer.marketAdjustment)}
+        ${moneyField("06", "Total MSRP — the bottom line of the window sticker", `${p}.msrp`, offer.msrp)}
+        ${moneyField("07", "Dealer discount — money the dealer takes off", `${p}.dealerDiscount`, offer.dealerDiscount)}
+        ${moneyField("08", "Dealer markup — any “market adjustment” they add (0 if none)", `${p}.marketAdjustment`, offer.marketAdjustment)}
       </section>
 
       <section class="grid gap-2.5">
@@ -191,10 +190,10 @@
 
       <section class="grid gap-2.5">
         <p class="section-code">F — Down payment &amp; trade-in</p>
-        ${moneyField("10", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
-        ${moneyField("11", "Trade-in value offered", `${p}.financing.tradeInValue`, offer.financing.tradeInValue)}
-        ${moneyField("12", "Trade-in loan payoff", `${p}.financing.tradeInPayoff`, offer.financing.tradeInPayoff)}
-        <div class="field-row"><span class="field-num">13</span>
+        ${moneyField("09", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
+        ${moneyField("10", "Trade-in value offered", `${p}.financing.tradeInValue`, offer.financing.tradeInValue)}
+        ${moneyField("11", "Trade-in loan payoff", `${p}.financing.tradeInPayoff`, offer.financing.tradeInPayoff)}
+        <div class="field-row"><span class="field-num">12</span>
           <label class="field-label">Prepayment penalty?</label>
           <select class="cell" data-path="${p}.financing.hasPrepaymentPenalty" data-type="tristate">
             <option value="unknown" ${offer.financing.hasPrepaymentPenalty == null ? "selected" : ""}>don't know yet</option>
