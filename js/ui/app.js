@@ -5,7 +5,7 @@
 ;(function (CDA) {
   const { state, load, persist, quickOffer, syncQuick, demoOffer, setPath, getPath,
     exportJson, importJson, renderAll, renderOffers, renderDerived, offerComputed,
-    parseMoney, parsePercent, parseApr, parseInt10, uid, esc,
+    parseMoney, parsePercent, parseApr, parseInt10, uid, esc, fmt0,
     generateChecklist, checklistToText } = CDA
 
   // ── In-app modal — replaces window.confirm/alert ──────────────
@@ -434,6 +434,21 @@
     if (path.includes(".msrp") || /\.rebates\.\d+\.amount$/.test(path)) {
       const offer = getPath(state, path.split(".").slice(0, 2).join("."))
       if (offer) syncQuick(offer)
+    }
+
+    // Rebate typed at the top updates the ways-to-pay section live —
+    // in place, so the input being typed in never loses focus
+    const rbMatch = path.match(/^offers\.(\d+)\.rebates\.(\d+)\.amount$/)
+    if (rbMatch) {
+      const offer = state.offers[+rbMatch[1]]
+      const rb = offer && offer.rebates[+rbMatch[2]]
+      if (rb) {
+        document.querySelectorAll('[data-rebate-text="' + rb.id + '"]').forEach((el2) => {
+          el2.textContent = fmt0(rb.amount || 0)
+        })
+        const totEl = document.querySelector('[data-rebate-total="' + offer.id + '"]')
+        if (totEl) totEl.textContent = fmt0(offer.rebates.reduce((s, r) => s + (r.amount || 0), 0))
+      }
     }
   }
 })(window.CDA = window.CDA || {})

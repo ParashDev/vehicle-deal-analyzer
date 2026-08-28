@@ -169,6 +169,7 @@
         </button>
       </div>
       <p class="text-[0.8125rem] text-ink-soft">Tap a choice to add it pre-filled, then fix the APR and months to the dealer's exact offer. The tool shows which one costs less.</p>
+      ${offer.rebates[0] ? `<p class="font-mono text-[0.6875rem] tracking-wide text-ink-faint">REBATE ON THE TABLE: <span data-rebate-total="${offer.id}">${fmt0(rebateTotalOf(offer))}</span> — TICK WHICH WAYS KEEP IT</p>` : ""}
       ${offer.scenarios.map((s, si) => `
         <div class="panel grid gap-2 p-3">
           <div class="grid grid-cols-[1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_6.5rem_2.5rem]">
@@ -183,11 +184,11 @@
             <input class="cell" inputmode="numeric" data-path="${p}.scenarios.${si}.termMonths" data-type="int" value="${s.termMonths}" aria-label="Term months" />
             <input class="cell" inputmode="decimal" data-path="${p}.scenarios.${si}.bonusCash" data-type="money" value="${s.bonusCash}" aria-label="Bonus cash" />
           </div>
-          ${rebateTotalOf(offer) > 0 ? `<div class="flex flex-wrap gap-x-4 gap-y-1">
-            ${offer.rebates.filter((r) => r.amount > 0).map((r) => `
+          ${offer.rebates.length ? `<div class="flex flex-wrap gap-x-4 gap-y-1">
+            ${offer.rebates.map((r) => `
               <label class="inline-flex items-center gap-1.5 text-[0.75rem] text-ink-soft">
                 <input type="checkbox" data-action="toggle-scenario-rebate" data-scenario="${p}.scenarios.${si}" data-rebate="${r.id}" ${s.rebatesApplied.includes(r.id) ? "checked" : ""} />
-                keeps the ${fmt0(r.amount)} rebate
+                keeps the <span data-rebate-text="${r.id}">${fmt0(r.amount)}</span> rebate
               </label>`).join("")}
           </div>` : ""}
         </div>`).join("")}
