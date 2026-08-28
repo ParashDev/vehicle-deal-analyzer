@@ -226,7 +226,7 @@
       case "add-scenario-preset":
         withOffer(id, (o) => {
           if (btn.dataset.preset === "zero") {
-            o.scenarios.push({ id: uid("sc"), label: "0% APR, give up rebates", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 })
+            o.scenarios.push({ id: uid("sc"), label: "0% APR (no rebate)", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 })
           } else {
             // Keep every rebate entered so far, at the offer's quoted rate
             const apr = o.financing.apr || 6.99

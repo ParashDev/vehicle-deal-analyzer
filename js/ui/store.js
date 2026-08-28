@@ -111,7 +111,7 @@
     o.accessories.push({ id: uid("acc"), label: "Spray-in bed liner (included)", charged: 0, retailValue: 450, isNegotiable: false, category: "legit" })
     o.scenarios = [
       { id: uid("sc"), label: "Take the rebate @ 5.99%", apr: 5.99, termMonths: 72, rebatesApplied: [o.rebates[0].id], bonusCash: 0 },
-      { id: uid("sc"), label: "0% APR, give up rebate", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
+      { id: uid("sc"), label: "0% APR (no rebate)", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
     ]
     return o
   }
@@ -126,7 +126,7 @@
     o.rebates[0].label = "Retail Bonus Cash"
     o.scenarios = [
       { id: uid("sc"), label: "Take the rebate @ 6.49%", apr: 6.49, termMonths: 72, rebatesApplied: [o.rebates[0].id], bonusCash: 0 },
-      { id: uid("sc"), label: "0% APR, give up rebate", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
+      { id: uid("sc"), label: "0% APR (no rebate)", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
     ]
     return o
   }

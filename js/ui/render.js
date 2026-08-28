@@ -230,7 +230,7 @@
       ${offer.scenarios.map((s, si) => `
         <div class="panel grid gap-2 p-3">
           <div class="grid grid-cols-[1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_6.5rem_2.5rem]">
-            <input class="cell cell-text" data-path="${p}.scenarios.${si}.label" data-type="text" value="${esc(s.label)}" placeholder="0% for 60, give up rebate" />
+            <input class="cell cell-text" data-path="${p}.scenarios.${si}.label" data-type="text" value="${esc(s.label)}" placeholder="e.g. 0% APR (no rebate)" />
             <input class="cell hidden sm:block" inputmode="decimal" data-path="${p}.scenarios.${si}.apr" data-type="apr" value="${s.apr}" title="APR %" />
             <input class="cell hidden sm:block" inputmode="numeric" data-path="${p}.scenarios.${si}.termMonths" data-type="int" value="${s.termMonths}" title="Term (months)" />
             <input class="cell hidden sm:block" inputmode="decimal" data-path="${p}.scenarios.${si}.bonusCash" data-type="money" value="${s.bonusCash}" title="Bonus cash" />
