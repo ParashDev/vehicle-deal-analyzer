@@ -31,11 +31,23 @@
       relDetail = "Only one offer entered — add another dealer's quote to grade them against each other."
     }
 
-    // 2) Bottom line vs sticker (20%) — ABSOLUTE sanity check. The quote
-    //    includes tax & fees, so ~100% of MSRP is typical; under ~95% is
-    //    strong. Full marks at 95%, zero at 110%.
+    // 2) Bottom line vs sticker (20%) — MEDIAN-RELATIVE like financing and
+    //    included value: your quote's %-of-sticker vs the median of your
+    //    offers. At the median = 6, best of your set = 10, fading to 0 by
+    //    10 points of sticker above the median. Absolute band only when
+    //    there's a single offer and nothing to compare against.
     const ratio = offer.msrp > 0 ? (offer.quickOtd || 0) / offer.msrp : 1.1
-    const priceScore = clamp01((1.10 - ratio) / 0.15)
+    let priceScore, priceDetail
+    const pb = opts.priceBench
+    if (pb && offer.msrp > 0) {
+      priceScore = ratio <= pb.median
+        ? 0.6 + 0.4 * clamp01((pb.median - ratio) / Math.max(pb.median - pb.best, 0.001))
+        : 0.6 * clamp01(1 - (ratio - pb.median) / 0.10)
+      priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of its sticker vs your offers' median of " + (pb.median * 100).toFixed(1) + "% (best: " + (pb.best * 100).toFixed(1) + "%). At the median scores 6; the best of your set scores 10."
+    } else {
+      priceScore = clamp01((1.10 - ratio) / 0.20)
+      priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of MSRP — tax & fees live in the quote, so ~100% is typical, ~90% exceptional. Add another offer to grade prices against each other."
+    }
 
     // 2) Financing quality (25%) — the best way's APR vs the benchmark
     //    (median of the standard-rate ways across YOUR offers when there are
@@ -79,7 +91,7 @@
     const components = [
       { key: "relative", label: "Vs your best offer", weight: 0.35, score: relScore, detail: relDetail },
       { key: "price", label: "Bottom line vs sticker", weight: 0.20, score: priceScore,
-        detail: "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of MSRP. Tax & fees live inside the quote, so ~100% is typical — under 95% is a strong deal." },
+        detail: priceDetail },
       { key: "financing", label: "Financing quality", weight: 0.25, score: financeScore,
         detail: apr + "% APR on the best way to pay vs " + (opts.benchmarkLabel || ("a " + benchmark + "% benchmark")) + "." },
       { key: "included", label: "Included value", weight: 0.10, score: includedScore,
