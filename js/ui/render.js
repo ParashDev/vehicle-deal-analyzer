@@ -545,7 +545,10 @@
   }
 
   function chartFocusOffer() {
-    const eligible = savedOffers().filter((o) => o.scenarios.length >= 2)
+    // ANY saved offer with at least one way to pay can be charted — a single
+    // way still draws its cost line; requiring 2+ made the picker vanish when
+    // only one offer had multiple ways
+    const eligible = savedOffers().filter((o) => o.scenarios.length >= 1)
     if (!eligible.length) return null
     return eligible.find((o) => o.id === state.chartOfferId) || eligible[0]
   }
@@ -553,21 +556,48 @@
   function renderChart() {
     const offer = chartFocusOffer()
     if (!offer) return
-    const eligible = savedOffers().filter((o) => o.scenarios.length >= 2)
+    const eligible = savedOffers().filter((o) => o.scenarios.length >= 1)
 
-    const a = offer.scenarios[0], b = offer.scenarios[1]
-    const v = verdict(offer, a, b, Math.min(state.horizon, Math.max(a.termMonths, b.termMonths)))
-    $("#verdict").innerHTML = `
-      ${eligible.length > 1 ? `<div class="mb-4 flex flex-wrap gap-2">${eligible.map((o) => `
-        <button class="btn ${o.id === offer.id ? "" : "btn-ghost"} text-[0.75rem]" data-action="focus-chart" data-id="${o.id}">${esc(o.label)}</button>`).join("")}</div>` : ""}
+    const picker = eligible.length > 1 ? `
+      <div class="mb-5">
+        <p class="section-code mb-2">Chart shows</p>
+        <div class="grid gap-2 sm:flex sm:flex-wrap">
+          ${eligible.map((o) => `
+            <button class="btn ${o.id === offer.id ? "" : "btn-ghost"} justify-between text-[0.75rem] sm:justify-center" data-action="focus-chart" data-id="${o.id}" aria-pressed="${o.id === offer.id}">
+              <span class="truncate">${esc(o.label)}</span>
+              <span class="ml-2 shrink-0 font-mono text-[0.625rem] tracking-widest ${o.id === offer.id ? "opacity-60" : "text-ink-faint"}">${o.scenarios.length} ${o.scenarios.length === 1 ? "WAY" : "WAYS"}</span>
+            </button>`).join("")}
+        </div>
+      </div>` : ""
+
+    let verdictHtml
+    let be = null
+    if (offer.scenarios.length >= 2) {
+      // With 3+ ways, the verdict compares the two CHEAPEST at your horizon —
+      // the chart still draws every line
+      const ranked = offer.scenarios
+        .map((s) => ({ s, cost: evaluateScenario(offer, s, state.horizon).totalCost }))
+        .sort((x, y) => x.cost - y.cost)
+      const sA = ranked[0].s, sB = ranked[1].s
+      const v = verdict(offer, sA, sB, Math.min(state.horizon, Math.max(sA.termMonths, sB.termMonths)))
+      be = breakevenMonth(offer, sA, sB)
+      verdictHtml = `
       <div class="verdict ${v.isCloseCall ? "verdict-close" : ""} p-5 sm:p-6">
-        <p class="font-mono text-[0.625rem] tracking-[0.14em] ${v.isCloseCall ? "text-warn" : "text-good"}">${v.isCloseCall ? "TOO CLOSE TO CALL ON PRICE ALONE" : "THE VERDICT"}</p>
+        <p class="font-mono text-[0.625rem] tracking-[0.14em] ${v.isCloseCall ? "text-warn" : "text-good"}">${v.isCloseCall ? "TOO CLOSE TO CALL ON PRICE ALONE" : "THE VERDICT"}${offer.scenarios.length > 2 ? ` · BEST 2 OF ${offer.scenarios.length} WAYS` : ""}</p>
         <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(v.text)}</p>
         ${v.breakevenMonth ? `<p class="mt-2 font-mono text-[0.75rem] text-ink-soft">ANSWER FLIPS AT MONTH ${v.breakevenMonth} · YOU SAID ${state.horizon} · DIFFERENCE ${fmt0(v.gap)}</p>` : ""}
       </div>`
+    } else {
+      verdictHtml = `
+      <div class="panel border-dashed p-5">
+        <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">ONE WAY TO PAY ENTERED</p>
+        <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The line below is this offer's total cost by payoff month. Add the dealer's other option (the rebate path or the 0% path) in this offer's editor and the chart will show exactly where the answer flips.</p>
+      </div>`
+    }
+
+    $("#verdict").innerHTML = picker + verdictHtml
 
     const curves = offer.scenarios.map((s) => ({ label: s.label, points: costCurve(offer, s) }))
-    const be = offer.scenarios.length >= 2 ? breakevenMonth(offer, offer.scenarios[0], offer.scenarios[1]) : null
     $("#chart").innerHTML = crossoverChart(curves, state.horizon, be)
   }
 
