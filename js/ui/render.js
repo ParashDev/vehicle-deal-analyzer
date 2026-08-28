@@ -264,7 +264,9 @@
         </div>
         <table class="w-full text-[0.8125rem]">
           ${line("Total MSRP (sticker)", fmt(w.msrp))}
-          ${w.marketAdjustment ? line(`<span class="text-bad">Quoted above sticker</span>`, `<span class="text-bad">+${fmt(w.marketAdjustment)}</span>`) : ""}
+          ${w.marketAdjustment ? (w.marketAdjustment > offer.msrp * 0.10
+            ? line(`<span class="text-bad">Above sticker — beyond tax &amp; fees</span>`, `<span class="text-bad">+${fmt(w.marketAdjustment)}</span>`)
+            : line(`Above sticker <span class="text-ink-faint">(tax &amp; fees usually explain this)</span>`, "+" + fmt(w.marketAdjustment))) : ""}
           ${w.dealerDiscount ? line("Off sticker in this quote", `<span class="text-good">−${fmt(w.dealerDiscount)}</span>`) : ""}
           ${rebateRow}
           ${line("<strong>OUT THE DOOR</strong>", `<strong class="text-base">${fmt(w.outTheDoor)}</strong>`, "border-t-2 border-ink")}

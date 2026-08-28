@@ -67,10 +67,13 @@
       includedDetail = included > 0 ? "$" + included.toFixed(0) + " of add-ons thrown in at no charge." : "Nothing thrown in for free."
     }
 
-    // 4) No markup above sticker (10%) — a quote above MSRP (after adding
-    //    the rebate back) burns this down; $2,000 of markup zeroes it.
-    const markup = offer.marketAdjustment || 0
-    const markupScore = clamp01(1 - markup / 2000)
+    // 4) Not priced above sticker (10%) — derived, no input needed: the
+    //    pre-rebate bottom line (quote + rebate) vs MSRP. Tax & fees live in
+    //    the quote, so up to ~110% of sticker is NORMAL — only beyond that
+    //    does it read as dealer markup. Full marks ≤110%, zero at 120%.
+    const rebateTotal = (offer.rebates || []).reduce((s, r) => s + (r.amount || 0), 0)
+    const preRatio = offer.msrp > 0 ? ((offer.quickOtd || 0) + rebateTotal) / offer.msrp : 1
+    const markupScore = preRatio <= 1.10 ? 1 : clamp01(1 - (preRatio - 1.10) / 0.10)
 
     const components = [
       { key: "relative", label: "Vs your best offer", weight: 0.35, score: relScore, detail: relDetail },
@@ -80,8 +83,8 @@
         detail: apr + "% APR on the best way to pay vs " + (opts.benchmarkLabel || ("a " + benchmark + "% benchmark")) + "." },
       { key: "included", label: "Included value", weight: 0.10, score: includedScore,
         detail: includedDetail },
-      { key: "markup", label: "No markup above sticker", weight: 0.10, score: markupScore,
-        detail: markup > 0 ? "This quote sits $" + markup.toFixed(0) + " ABOVE sticker once the rebate is added back." : "Quote sits at or below sticker — no hidden markup." },
+      { key: "markup", label: "Not priced above sticker", weight: 0.10, score: markupScore,
+        detail: "Pre-rebate bottom line is " + (preRatio * 100).toFixed(1) + "% of sticker. Up to ~110% is normal — tax & fees live in the quote. Beyond that is dealer-markup territory." },
     ]
 
     const raw = components.reduce((sum, c) => sum + c.weight * c.score, 0)
@@ -92,7 +95,7 @@
     if (ratio > 0.97 && offer.msrp > 0) improvements.push("Push the bottom line toward 95% of sticker (about $" + Math.round(offer.msrp * 0.95).toLocaleString() + " out the door).")
     if (apr > 0 && financeScore < 0.8) improvements.push("Beat " + apr + "% APR with a credit-union preapproval before you sign.")
     if (included < 300) improvements.push("Ask for extras thrown in — all-weather mats, cargo tray, first services.")
-    if (markup > 0) improvements.push("Get the $" + markup.toFixed(0) + " above-sticker markup removed, or walk.")
+    if (preRatio > 1.10 && offer.msrp > 0) improvements.push("The pre-rebate price is " + (preRatio * 100).toFixed(0) + "% of sticker — more than tax and fees explain. Ask what the markup is for, or walk.")
 
     const band = score >= 8 ? "a genuinely good deal" : score >= 6.5 ? "a solid deal with room to push" : score >= 5 ? "about average — most buyers land here" : score >= 3.5 ? "below average — several fixable problems" : "a bad deal as written"
 
