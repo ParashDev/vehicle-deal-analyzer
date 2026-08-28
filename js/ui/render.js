@@ -27,12 +27,32 @@
     // flags still feed the checklist (e.g. a quote above sticker fires the
     // markup question) even though there is no flags section any more
     const flags = detectFlags(offer, 0)
-    // Score's biggest component is RELATIVE: this offer's value-adjusted
-    // total cost against the best of all saved offers
+    // Score's biggest component is RELATIVE: value-adjusted total cost as a
+    // fraction of each vehicle's own sticker — a dollar comparison when the
+    // MSRPs match, a deal-quality comparison when the vehicles differ
     const peers = state.offers.filter((o) => !o.draft)
-    const relative = peers.length >= 2 && !offer.draft
-      ? { gap: (best.totalCost - includedValueOf(offer)) - Math.min.apply(null, peers.map(netCostOf)) }
-      : null
+    let relative = null
+    if (peers.length >= 2 && !offer.draft && offer.msrp > 0) {
+      const msrps = peers.map((o) => o.msrp).filter((m) => m > 0)
+      const sameVehicle = msrps.length >= 2 && (Math.max.apply(null, msrps) - Math.min.apply(null, msrps)) / Math.min.apply(null, msrps) <= 0.02
+      const myNet = best.totalCost - includedValueOf(offer)
+      const myRatio = myNet / offer.msrp
+      const bestRatio = Math.min.apply(null, peers.filter((o) => o.msrp > 0).map((o) => netCostOf(o) / o.msrp))
+      const gapRatio = myRatio - bestRatio
+      let detail, improve
+      if (gapRatio <= 0.0005) {
+        detail = "This is your best offer — the others are graded against it."
+      } else if (sameVehicle) {
+        const bestNet = Math.min.apply(null, peers.map(netCostOf))
+        const gapDollars = Math.round(myNet - bestNet)
+        detail = "$" + gapDollars.toLocaleString() + " more total cost than your best offer by your payoff date, with included extras counted."
+        improve = "You're $" + gapDollars.toLocaleString() + " behind your best offer — show this dealer that quote and ask them to beat it."
+      } else {
+        detail = "Total cost lands at " + (myRatio * 100).toFixed(1) + "% of THIS vehicle's sticker; your best offer runs " + (bestRatio * 100).toFixed(1) + "% of its own. Different vehicles are graded on deal quality, not absolute price."
+        improve = "This deal runs " + ((gapRatio) * 100).toFixed(1) + " points of sticker behind your best — push this dealer harder or take the other deal."
+      }
+      relative = { gapRatio, detail, improve }
+    }
     const bench = aprBenchmark(peers)
     const incValues = peers.map(includedValueOf).sort((a, b) => a - b)
     const incMid = Math.floor(incValues.length / 2)
@@ -371,6 +391,12 @@
       </tr></thead>
       <tbody>
         <tr class="row-headline"><td>Total cost @ ${state.horizon} mo</td>${results.map((r) => cell(r, "totalCost", fmt)).join("")}</tr>
+        ${(() => {
+          const ratios = results.map((r) => { const o = state.offers.find((x) => x.id === r.offerId); return o && o.msrp > 0 ? (r.totalCost - includedValueOf(o)) / o.msrp : null })
+          if (ratios.some((x) => x == null)) return ""
+          const minR = Math.min.apply(null, ratios)
+          return `<tr><td>Deal quality — total cost as % of its sticker</td>${results.map((r, ri) => `<td class="${ratios[ri] === minR && results.length > 1 ? "win" : ""}">${(ratios[ri] * 100).toFixed(1)}%</td>`).join("")}</tr>`
+        })()}
         <tr><td>Out the door</td>${results.map((r) => `<td>${fmt(r.waterfall.outTheDoor)}</td>`).join("")}</tr>
         <tr><td>Rebate kept in this path</td>${results.map((r) => `<td>${r.rebateTotal ? "−" + fmt(r.rebateTotal) : "—"}</td>`).join("")}</tr>
         ${(() => {
@@ -398,7 +424,38 @@
     for (const r of results) {
       if (!bestPerOffer.has(r.offerId)) bestPerOffer.set(r.offerId, r)
     }
-    const bests = Array.from(bestPerOffer.values()).sort((a, b) => a.totalCost - b.totalCost)
+    const offerOf = (r) => state.offers.find((o) => o.id === r.offerId)
+    const netRatio = (r) => { const o = offerOf(r); return o && o.msrp > 0 ? (r.totalCost - includedValueOf(o)) / o.msrp : Infinity }
+
+    // Same vehicle (MSRPs within 2%): rank by dollars. Different vehicles:
+    // rank by deal quality — total cost as % of each vehicle's own sticker.
+    const allBests = Array.from(bestPerOffer.values())
+    const msrps = allBests.map((r) => (offerOf(r) || {}).msrp || 0).filter((m) => m > 0)
+    const sameVehicle = msrps.length < 2 || (Math.max.apply(null, msrps) - Math.min.apply(null, msrps)) / Math.min.apply(null, msrps) <= 0.02
+
+    if (!sameVehicle) {
+      const ranked = allBests.sort((a, b) => netRatio(a) - netRatio(b))
+      if (ranked.length < 2) { host.innerHTML = ""; return }
+      const w = ranked[0], r = ranked[1]
+      const wr = netRatio(w) * 100, rr = netRatio(r) * 100
+      if (Math.abs(wr - rr) < 0.5) {
+        host.innerHTML = `
+          <div class="verdict verdict-close p-5">
+            <p class="font-mono text-[0.625rem] tracking-[0.14em] text-warn">DIFFERENT VEHICLES — DEALS ARE EQUALLY GOOD</p>
+            <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(w.offerLabel)} and ${esc(r.offerLabel)} are equally good deals for their money (${wr.toFixed(1)}% vs ${rr.toFixed(1)}% of each sticker, extras counted). Pick the vehicle you actually want.</p>
+          </div>`
+        return
+      }
+      host.innerHTML = `
+        <div class="verdict p-5">
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-good">BEST DEAL FOR THE MONEY — DIFFERENT VEHICLES</p>
+          <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(w.offerLabel)} is the better deal for its money — total cost lands at ${wr.toFixed(1)}% of its sticker vs ${rr.toFixed(1)}% for ${esc(r.offerLabel)}, extras counted. Which vehicle you'd rather own is your call — we grade the deals, not the vehicles.</p>
+          <p class="mt-2 font-mono text-[0.75rem] text-ink-soft">${esc(w.offerLabel).toUpperCase()} TOTAL ${fmt0(w.totalCost)} · ${esc(r.offerLabel).toUpperCase()} TOTAL ${fmt0(r.totalCost)}</p>
+        </div>`
+      return
+    }
+
+    const bests = allBests.sort((a, b) => a.totalCost - b.totalCost)
     if (bests.length < 2) { host.innerHTML = ""; return }
     const winner = bests[0], runnerUp = bests[1]
     const gap = Math.round(runnerUp.totalCost - winner.totalCost)

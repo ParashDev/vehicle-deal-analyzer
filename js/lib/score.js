@@ -18,14 +18,15 @@
     //    with included extras counted, against the best quote you entered.
     //    $2,500 behind = zero. This is what makes scores differ between your
     //    offers instead of everyone acing an absolute band.
+    // gapRatio = (my total cost / my sticker) − (best offer's same ratio):
+    // identical to a dollar gap when the vehicles share an MSRP, and a fair
+    // deal-quality comparison when they don't. ~7 points of sticker = zero.
     let relScore = 1
     let relDetail
     if (opts.relative) {
-      const gap = Math.max(0, Math.round(opts.relative.gap))
-      relScore = clamp01(1 - gap / 2500)
-      relDetail = gap <= 0
-        ? "This is your best offer — the others are graded against it."
-        : "$" + gap.toLocaleString() + " more total cost than your best offer by your payoff date, with included extras counted."
+      const gapRatio = Math.max(0, opts.relative.gapRatio)
+      relScore = clamp01(1 - gapRatio / 0.07)
+      relDetail = opts.relative.detail
     } else {
       relDetail = "Only one offer entered — add another dealer's quote to grade them against each other."
     }
@@ -91,7 +92,7 @@
     const score = Math.round(raw * 100) / 10
 
     const improvements = []
-    if (opts.relative && opts.relative.gap > 200) improvements.push("You're $" + Math.round(opts.relative.gap).toLocaleString() + " behind your best offer — show this dealer that quote and ask them to beat it.")
+    if (opts.relative && opts.relative.gapRatio > 0.006 && opts.relative.improve) improvements.push(opts.relative.improve)
     if (ratio > 0.97 && offer.msrp > 0) improvements.push("Push the bottom line toward 95% of sticker (about $" + Math.round(offer.msrp * 0.95).toLocaleString() + " out the door).")
     if (apr > 0 && financeScore < 0.8) improvements.push("Beat " + apr + "% APR with a credit-union preapproval before you sign.")
     if (included < 300) improvements.push("Ask for extras thrown in — all-weather mats, cargo tray, first services.")
