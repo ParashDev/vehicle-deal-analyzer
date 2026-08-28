@@ -1,12 +1,12 @@
-// All rendering. Two tiers: renderOffers() rebuilds the entry forms (only on
-// structural changes, so typing never loses focus) and renderDerived()
-// rebuilds everything computed — cheap, runs on every keystroke and slider
-// move.
+// All rendering — quick-compare model only. Two tiers: renderOffers()
+// rebuilds the entry forms (only on structural changes, so typing never
+// loses focus) and renderDerived() rebuilds everything computed — cheap,
+// runs on every keystroke and slider move.
 
 ;(function (CDA) {
-  const { state, fmt, fmt0, fmtPct, esc, STATE_TAX_RULES, getStateRule,
-    computeWaterfall, evaluateScenario, effectiveScenarios, compareAll, breakevenMonth, verdict, costCurve,
-    detectFlags, scoreDeal, generateChecklist, crossoverChart } = CDA
+  const { state, fmt, fmt0, esc,
+    evaluateScenario, effectiveScenarios, compareAll, breakevenMonth, verdict, costCurve,
+    detectFlags, generateChecklist, crossoverChart } = CDA
 
   const $ = (sel) => document.querySelector(sel)
 
@@ -17,28 +17,20 @@
     const names = includedItemsOf(offer).map((a) => a.label || "unnamed item")
     return names.length > 3 ? names.slice(0, 3).join(", ") + "…" : names.join(", ")
   }
+  const rebateTotalOf = (offer) => (offer.rebates || []).reduce((s, r) => s + (r.amount || 0), 0)
 
   // ── shared computation for one offer ──────────────────────────
   function offerComputed(offer) {
     const results = effectiveScenarios(offer, state.horizon).map((s) => evaluateScenario(offer, s, state.horizon))
     results.sort((a, b) => a.totalCost - b.totalCost)
     const best = results[0]
-    const flags = detectFlags(offer, best ? best.waterfall.computedTax.totalTax : 0)
-    const waterfall = best ? best.waterfall : computeWaterfall({
-      msrp: offer.msrp, marketAdjustment: offer.marketAdjustment, factoryDiscount: offer.factoryDiscount,
-      dealerDiscount: offer.dealerDiscount, accessories: offer.accessories, fees: offer.fees,
-      rebateTotal: 0, tradeInValue: 0, tradeInPayoff: 0,
-      stateCode: offer.taxJurisdiction.stateCode, rateOverride: offer.taxJurisdiction.salesTaxRate, extraTaxes: [],
-    })
-    const score = scoreDeal(offer, flags, waterfall, {
-      segment: "mainstream",
-      aprBenchmark: state.benchmark || 7,
-      scenarioApr: best ? best.apr : offer.financing.apr,
-    })
-    return { results, best, flags, waterfall, score }
+    // flags still feed the checklist (e.g. a quote above sticker fires the
+    // markup question) even though there is no flags section any more
+    const flags = detectFlags(offer, 0)
+    return { results, best, flags }
   }
 
-  // ── Offers list + editors ─────────────────────────────────────
+  // ── Offers list + editor ──────────────────────────────────────
   function renderOffers() {
     const host = $("#offers")
     if (!state.offers.length) {
@@ -46,9 +38,8 @@
         <div class="panel grid-paper p-8 text-center">
           <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">NO OFFERS YET</p>
           <p class="mx-auto mt-3 max-w-md text-[0.9375rem] text-ink-soft">
-            <strong class="text-ink">Full worksheet</strong> is the real tool — sticker price,
-            dealer discount, rebates, add-ons, fees, and every way to pay. Quick compare is for
-            checking bottom-line quotes in a hurry. Load the demo deal to see it all filled in.
+            One offer per dealer: the quoted out-the-door price, the rebate inside it,
+            what they throw in, and the ways to pay. Load the demo deal to see it filled in.
           </p>
         </div>`
       return
@@ -57,13 +48,13 @@
   }
 
   function offerCard(offer, index) {
-    const { best, score } = offerComputed(offer)
+    const { best } = offerComputed(offer)
     const open = state.expandedOfferId === offer.id
     return `
     <article class="panel ${open ? "panel-strong" : ""}">
       <header class="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3 sm:px-5">
         <div class="min-w-0">
-          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">OFFER ${String(index + 1).padStart(2, "0")}${offer.mode === "quick" ? " · QUICK" : ""}${offer.draft ? ` <span class="text-warn">· DRAFT — NOT SAVED</span>` : ""}</p>
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">OFFER ${String(index + 1).padStart(2, "0")}${offer.draft ? ` <span class="text-warn">· DRAFT — NOT SAVED</span>` : ""}</p>
           <h3 class="truncate text-lg font-extrabold tracking-tight">${esc(offer.label)}</h3>
         </div>
         <div class="flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2">
@@ -78,11 +69,7 @@
           ${includedValueOf(offer) > 0 ? `<div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">+VALUE</p>
             <p class="font-mono text-base font-semibold tabular text-good">${fmt0(includedValueOf(offer))}</p>
-          </div>` : ""}
-          <div class="text-right">
-            <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">SCORE</p>
-            <p class="font-mono text-base font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}</p>
-          </div>` : ""}
+          </div>` : ""}` : ""}
           <div class="flex gap-2">
             ${open
               ? offer.draft
@@ -96,12 +83,11 @@
         </div>
       </header>
       ${open ? offerEditor(offer) : ""}
-      ${offer.mode === "detailed" && !offer.draft ? waterfallDetail(offer) : ""}
+      ${!offer.draft && offer.msrp ? breakdownDetail(offer) : ""}
     </article>`
   }
 
-  // Save / Cancel bar at the bottom of every editor — nothing commits
-  // without it
+  // Save / Cancel bar at the bottom of the editor — nothing commits without it
   function editorFooter(offer) {
     return `
     <div class="flex flex-wrap items-center gap-2 border-t border-hairline pt-4">
@@ -126,140 +112,37 @@
   function offerEditor(offer) {
     const i = state.offers.indexOf(offer)
     const p = `offers.${i}`
-    const rule = getStateRule(offer.taxJurisdiction.stateCode)
-
-    if (offer.mode === "quick") {
-      return `<div class="grid gap-6 px-4 py-5 sm:px-5">
-        <div class="grid gap-2.5">
-          <p class="section-code">Quick offer — five numbers</p>
-          <div class="field-row"><span class="field-num">01</span>
-            <label class="field-label">Dealer / label</label>
-            <input class="cell cell-text" data-path="${p}.label" data-type="text" value="${esc(offer.label)}" /></div>
-          ${moneyField("02", "Total MSRP (window sticker)", `${p}.msrp`, offer.msrp)}
-          ${moneyField("03", "Out-the-door price quoted", `${p}.quickOtd`, offer.msrp - offer.dealerDiscount + offer.marketAdjustment)}
-          ${moneyField("04", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
-        </div>
-
-        <div class="grid gap-2.5">
-          <div class="flex items-center justify-between gap-3">
-            <p class="section-code">Dealer add-ons included in that price</p>
-            <button class="btn btn-ghost text-[0.6875rem]" data-action="add-included" data-id="${offer.id}">+ Add an add-on</button>
-          </div>
-          <p class="text-[0.8125rem] text-ink-soft">
-            Bed liner, mats, tint — anything the dealer throws in. This never changes the OTD;
-            it counts as <strong class="text-ink">value</strong>, so two same-price offers rank
-            by what you actually get.
-          </p>
-          ${offer.accessories.length ? `<p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">WHAT IT IS · WHAT IT'S WORTH</p>` : ""}
-          ${offer.accessories.map((a, ai) => `
-            <div class="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2">
-              <input class="cell cell-text" data-path="${p}.accessories.${ai}.label" data-type="text" value="${esc(a.label)}" placeholder="e.g. all-weather mats, tint, bed liner" />
-              <input class="cell" inputmode="decimal" data-path="${p}.accessories.${ai}.retailValue" data-type="money" value="${a.retailValue}" title="What it's worth" />
-              <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.accessories" data-index="${ai}" aria-label="Remove add-on">×</button>
-            </div>`).join("")}
-        </div>
-
-        ${scenarioEditor(offer, p)}
-        <p class="border-l-2 border-warn bg-warn-wash px-3 py-2 text-[0.8125rem] leading-relaxed text-warn">Quick compare only checks bottom-line quotes. To enter <strong>dealer discounts, rebates (Ford/Toyota cash), add-ons, and fees</strong>, use the <strong>Full worksheet</strong> button instead — that's where the real analysis happens.</p>
-        ${editorFooter(offer)}
-      </div>`
-    }
-
-    return `<div class="grid gap-7 px-4 py-5 sm:px-5">
-      <section class="grid gap-2.5">
-        <p class="section-code">A — Dealer &amp; your state</p>
+    return `<div class="grid gap-6 px-4 py-5 sm:px-5">
+      <div class="grid gap-2.5">
+        <p class="section-code">The offer — five numbers</p>
         <div class="field-row"><span class="field-num">01</span>
           <label class="field-label">Dealer / label</label>
           <input class="cell cell-text" data-path="${p}.label" data-type="text" value="${esc(offer.label)}" /></div>
-        <div class="field-row"><span class="field-num">02</span>
-          <label class="field-label">State</label>
-          <select class="cell" data-path="${p}.taxJurisdiction.stateCode" data-type="state">
-            ${STATE_TAX_RULES.map((r) => `<option value="${r.stateCode}" ${r.stateCode === offer.taxJurisdiction.stateCode ? "selected" : ""}>${r.stateCode} — ${esc(r.name)}</option>`).join("")}
-          </select></div>
-        <div class="field-row"><span class="field-num">03</span>
-          <label class="field-label">Combined tax rate <span class="text-ink-faint">(state expects ${rule ? fmtPct(rule.baseRate) : "?"} + local)</span></label>
-          <input class="cell" inputmode="decimal" data-path="${p}.taxJurisdiction.salesTaxRate" data-type="pct" value="${(offer.taxJurisdiction.salesTaxRate * 100).toFixed(2).replace(/\.?0+$/, "")}%" /></div>
-        <div class="field-row"><span class="field-num">04</span>
-          <label class="field-label">Dealer's stated tax <span class="text-ink-faint">(optional — pins their number)</span></label>
-          <input class="cell" inputmode="decimal" data-path="${p}.dealerStatedTax" data-type="money-null" value="${offer.dealerStatedTax != null ? offer.dealerStatedTax : ""}" placeholder="leave blank" /></div>
-        <div class="field-row"><span class="field-num">05</span>
-          <label class="field-label">Days this vehicle has been on the lot</label>
-          <input class="cell" inputmode="numeric" data-path="${p}.vehicle.daysOnLot" data-type="int-null" value="${offer.vehicle.daysOnLot != null ? offer.vehicle.daysOnLot : ""}" placeholder="ask them" /></div>
-        ${rule && rule.specialCase ? `<p class="border-l-2 border-warn bg-warn-wash px-3 py-2 text-[0.75rem] leading-relaxed text-warn">${esc(rule.name)} uses a special tax regime (${esc(rule.notes)}) — treat the computed tax as a rough estimate and lean on the dealer's stated number.</p>` : ""}
-      </section>
+        ${moneyField("02", "Total MSRP (window sticker)", `${p}.msrp`, offer.msrp)}
+        ${moneyField("03", "Out-the-door price quoted <span class=\"text-ink-faint\">(their bottom line, rebate included)</span>", `${p}.quickOtd`, offer.quickOtd)}
+        ${moneyField("04", "Rebate included in that price <span class=\"text-ink-faint\">(Ford/Toyota cash — 0 if none)</span>", `${p}.rebates.0.amount`, offer.rebates[0] ? offer.rebates[0].amount : 0)}
+        ${moneyField("05", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
+        <p class="text-[0.6875rem] leading-relaxed text-ink-faint">If a way to pay gives the rebate up (the usual 0% APR trade), we price that way at your quote + the rebate — the dealer doesn't hand you both.</p>
+      </div>
 
-      <section class="grid gap-2.5">
-        <p class="section-code">B — Price &amp; discounts</p>
-        ${moneyField("06", "Total MSRP — the bottom line of the window sticker", `${p}.msrp`, offer.msrp)}
-        ${moneyField("07", "Dealer discount — money the dealer takes off", `${p}.dealerDiscount`, offer.dealerDiscount)}
-        ${moneyField("08", "Dealer markup — any “market adjustment” they add (0 if none)", `${p}.marketAdjustment`, offer.marketAdjustment)}
-      </section>
-
-      <section class="grid gap-2.5">
-        <div class="flex items-center justify-between">
-          <p class="section-code">C — Rebates <span class="normal-case">(Ford, Toyota, GM cash offers — any money the manufacturer takes off)</span></p>
-          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-rebate" data-id="${offer.id}">+ Add rebate</button>
+      <div class="grid gap-2.5">
+        <div class="flex items-center justify-between gap-3">
+          <p class="section-code">Dealer add-ons included in that price</p>
+          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-included" data-id="${offer.id}">+ Add an add-on</button>
         </div>
-        ${offer.rebates.map((r, ri) => `
-          <div class="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2 sm:grid-cols-[1fr_8rem_auto_2.5rem]">
-            <input class="cell cell-text" data-path="${p}.rebates.${ri}.label" data-type="text" value="${esc(r.label)}" placeholder="Retail Bonus Cash" />
-            <input class="cell" inputmode="decimal" data-path="${p}.rebates.${ri}.amount" data-type="money" value="${r.amount}" />
-            <label class="hidden items-center gap-1.5 text-[0.6875rem] text-ink-soft sm:flex" title="Some rebates only apply if you finance through the brand's own lender (Ford Credit, GM Financial, Toyota Financial)">
-              <input type="checkbox" data-path="${p}.rebates.${ri}.requiresCaptiveFinancing" data-type="bool" ${r.requiresCaptiveFinancing ? "checked" : ""} />needs their financing
-            </label>
-            <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.rebates" data-index="${ri}" aria-label="Remove rebate">×</button>
-          </div>`).join("") || `<p class="text-[0.8125rem] text-ink-faint">None entered.</p>`}
-      </section>
-
-      <section class="grid gap-2.5">
-        <div class="flex items-center justify-between">
-          <p class="section-code">D — Dealer options &amp; add-ons <span class="normal-case">(tint, protection packages… what they charge vs what it's worth)</span></p>
-          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-accessory" data-id="${offer.id}">+ Add option</button>
-        </div>
+        <p class="text-[0.8125rem] text-ink-soft">
+          Bed liner, mats, tint — anything the dealer throws in. This never changes the OTD;
+          it counts as <strong class="text-ink">value</strong>, so two same-price offers rank
+          by what you actually get.
+        </p>
+        ${offer.accessories.length ? `<p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">WHAT IT IS · WHAT IT'S WORTH</p>` : ""}
         ${offer.accessories.map((a, ai) => `
-          <div class="grid grid-cols-[1fr_6.5rem_6.5rem_2.5rem] items-center gap-2">
-            <input class="cell cell-text" data-path="${p}.accessories.${ai}.label" data-type="text" value="${esc(a.label)}" placeholder="Nitrogen fill…" />
-            <input class="cell" inputmode="decimal" data-path="${p}.accessories.${ai}.charged" data-type="money" value="${a.charged}" title="Charged" />
-            <input class="cell" inputmode="decimal" data-path="${p}.accessories.${ai}.retailValue" data-type="money" value="${a.retailValue}" title="Real value" />
+          <div class="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2">
+            <input class="cell cell-text" data-path="${p}.accessories.${ai}.label" data-type="text" value="${esc(a.label)}" placeholder="e.g. all-weather mats, tint, bed liner" />
+            <input class="cell" inputmode="decimal" data-path="${p}.accessories.${ai}.retailValue" data-type="money" value="${a.retailValue}" title="What it's worth" />
             <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.accessories" data-index="${ai}" aria-label="Remove add-on">×</button>
-          </div>`).join("") || `<p class="text-[0.8125rem] text-ink-faint">None — good. Charged / real-value columns appear when you add one.</p>`}
-      </section>
-
-      <section class="grid gap-2.5">
-        <div class="flex items-center justify-between">
-          <p class="section-code">E — Fees</p>
-          <button class="btn btn-ghost text-[0.6875rem]" data-action="add-fee" data-id="${offer.id}">+ Fee</button>
-        </div>
-        ${offer.fees.map((f, fi) => `
-          <div class="grid grid-cols-[1fr_6.5rem_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6.5rem_8rem_auto_2.5rem]">
-            <input class="cell cell-text" data-path="${p}.fees.${fi}.label" data-type="text" value="${esc(f.label)}" />
-            <input class="cell" inputmode="decimal" data-path="${p}.fees.${fi}.amount" data-type="money" value="${f.amount}" />
-            <select class="cell hidden sm:block" data-path="${p}.fees.${fi}.category" data-type="text">
-              <option value="government" ${f.category === "government" ? "selected" : ""}>government</option>
-              <option value="doc" ${f.category === "doc" ? "selected" : ""}>doc</option>
-              <option value="dealer-junk" ${f.category === "dealer-junk" ? "selected" : ""}>dealer</option>
-            </select>
-            <label class="hidden items-center gap-1.5 text-[0.6875rem] text-ink-soft sm:flex">
-              <input type="checkbox" data-path="${p}.fees.${fi}.isTaxable" data-type="bool" ${f.isTaxable ? "checked" : ""} />taxable
-            </label>
-            <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.fees" data-index="${fi}" aria-label="Remove fee">×</button>
           </div>`).join("")}
-        <p class="text-[0.6875rem] leading-relaxed text-ink-faint">Title &amp; registration are pre-filled with your state's typical amounts — overwrite them with the dealer's exact numbers once you have the worksheet. These are set by law, so a number far above ours gets flagged.</p>
-      </section>
-
-      <section class="grid gap-2.5">
-        <p class="section-code">F — Down payment &amp; trade-in</p>
-        ${moneyField("09", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
-        ${moneyField("10", "Trade-in value offered", `${p}.financing.tradeInValue`, offer.financing.tradeInValue)}
-        ${moneyField("11", "Trade-in loan payoff", `${p}.financing.tradeInPayoff`, offer.financing.tradeInPayoff)}
-        <div class="field-row"><span class="field-num">12</span>
-          <label class="field-label">Prepayment penalty?</label>
-          <select class="cell" data-path="${p}.financing.hasPrepaymentPenalty" data-type="tristate">
-            <option value="unknown" ${offer.financing.hasPrepaymentPenalty == null ? "selected" : ""}>don't know yet</option>
-            <option value="no" ${offer.financing.hasPrepaymentPenalty === false ? "selected" : ""}>no — simple interest</option>
-            <option value="yes" ${offer.financing.hasPrepaymentPenalty === true ? "selected" : ""}>yes / precomputed</option>
-          </select></div>
-      </section>
+      </div>
 
       ${scenarioEditor(offer, p)}
       ${editorFooter(offer)}
@@ -270,41 +153,41 @@
     return `
     <section class="grid gap-2.5">
       <div class="flex items-center justify-between gap-3">
-        <p class="section-code">G — Ways to pay</p>
+        <p class="section-code">Ways to pay</p>
         <button class="btn btn-ghost text-[0.6875rem]" data-action="add-scenario" data-id="${offer.id}">+ Add a way to pay</button>
       </div>
       <div class="grid gap-2 sm:grid-cols-2">
         <button type="button" data-action="add-scenario-preset" data-preset="keep" data-id="${offer.id}"
           class="rounded-[2px] border border-hairline bg-paper px-3 py-2 text-left transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 1 · TAP TO ADD</p>
-          <p class="mt-0.5 text-[0.8125rem] font-medium">Keep the rebates, pay the normal rate</p>
+          <p class="mt-0.5 text-[0.8125rem] font-medium">Keep the rebate, pay the normal rate</p>
         </button>
         <button type="button" data-action="add-scenario-preset" data-preset="zero" data-id="${offer.id}"
           class="rounded-[2px] border border-hairline bg-paper px-3 py-2 text-left transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">TYPICAL CHOICE 2 · TAP TO ADD</p>
-          <p class="mt-0.5 text-[0.8125rem] font-medium">Give up the rebates, get 0% / low APR</p>
+          <p class="mt-0.5 text-[0.8125rem] font-medium">Give up the rebate, get 0% / low APR</p>
         </button>
       </div>
       <p class="text-[0.8125rem] text-ink-soft">Tap a choice to add it pre-filled, then fix the APR and months to the dealer's exact offer. The tool shows which one costs less.</p>
       ${offer.scenarios.map((s, si) => `
         <div class="panel grid gap-2 p-3">
           <div class="grid grid-cols-[1fr_2.5rem] items-center gap-2 sm:grid-cols-[1fr_6rem_6rem_6.5rem_2.5rem]">
-            <input class="cell cell-text" data-path="${p}.scenarios.${si}.label" data-type="text" value="${esc(s.label)}" placeholder="0% for 60, forfeit rebates" />
+            <input class="cell cell-text" data-path="${p}.scenarios.${si}.label" data-type="text" value="${esc(s.label)}" placeholder="0% for 60, give up rebate" />
             <input class="cell hidden sm:block" inputmode="decimal" data-path="${p}.scenarios.${si}.apr" data-type="apr" value="${s.apr}" title="APR %" />
             <input class="cell hidden sm:block" inputmode="numeric" data-path="${p}.scenarios.${si}.termMonths" data-type="int" value="${s.termMonths}" title="Term (months)" />
             <input class="cell hidden sm:block" inputmode="decimal" data-path="${p}.scenarios.${si}.bonusCash" data-type="money" value="${s.bonusCash}" title="Bonus cash" />
-            <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.scenarios" data-index="${si}" aria-label="Remove scenario">×</button>
+            <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.scenarios" data-index="${si}" aria-label="Remove way to pay">×</button>
           </div>
           <div class="grid grid-cols-3 gap-2 sm:hidden">
             <input class="cell" inputmode="decimal" data-path="${p}.scenarios.${si}.apr" data-type="apr" value="${s.apr}" aria-label="APR percent" />
             <input class="cell" inputmode="numeric" data-path="${p}.scenarios.${si}.termMonths" data-type="int" value="${s.termMonths}" aria-label="Term months" />
             <input class="cell" inputmode="decimal" data-path="${p}.scenarios.${si}.bonusCash" data-type="money" value="${s.bonusCash}" aria-label="Bonus cash" />
           </div>
-          ${offer.rebates.length ? `<div class="flex flex-wrap gap-x-4 gap-y-1">
-            ${offer.rebates.map((r) => `
+          ${rebateTotalOf(offer) > 0 ? `<div class="flex flex-wrap gap-x-4 gap-y-1">
+            ${offer.rebates.filter((r) => r.amount > 0).map((r) => `
               <label class="inline-flex items-center gap-1.5 text-[0.75rem] text-ink-soft">
                 <input type="checkbox" data-action="toggle-scenario-rebate" data-scenario="${p}.scenarios.${si}" data-rebate="${r.id}" ${s.rebatesApplied.includes(r.id) ? "checked" : ""} />
-                ${esc(r.label)} (${fmt0(r.amount)})
+                keeps the ${fmt0(r.amount)} rebate
               </label>`).join("")}
           </div>` : ""}
         </div>`).join("")}
@@ -312,33 +195,16 @@
     </section>`
   }
 
-  // One worksheet card per way to pay, side by side — the OTDs differ only by
-  // which rebates each way keeps, and this makes that visible instead of
-  // showing one ambiguous table.
-  function waterfallCard(offer, scenario) {
-    let w, label, res = null
-    if (scenario) {
-      res = evaluateScenario(offer, scenario, state.horizon)
-      w = res.waterfall
-      label = scenario.label
-    } else {
-      w = computeWaterfall({
-        msrp: offer.msrp, marketAdjustment: offer.marketAdjustment, factoryDiscount: offer.factoryDiscount,
-        dealerDiscount: offer.dealerDiscount, accessories: offer.accessories, fees: offer.fees,
-        rebateTotal: offer.rebates.reduce((s, r) => s + r.amount, 0),
-        tradeInValue: offer.financing.tradeInValue, tradeInPayoff: offer.financing.tradeInPayoff,
-        stateCode: offer.taxJurisdiction.stateCode, rateOverride: offer.taxJurisdiction.salesTaxRate,
-        extraTaxes: offer.taxJurisdiction.extraTaxes,
-        dealerStatedTax: offer.dealerStatedTax != null ? offer.dealerStatedTax : undefined,
-      })
-      label = offer.rebates.length ? "With all rebates applied" : "As entered"
-    }
-    const taxDelta = w.dealerStatedTax != null ? w.dealerStatedTax - w.computedTax.totalTax : null
+  // ── Per-way breakdown (quick model: MSRP → discount → rebate → OTD) ──
+  function breakdownCard(offer, scenario) {
+    const res = scenario ? evaluateScenario(offer, scenario, state.horizon) : evaluateScenario(offer, effectiveScenarios(offer, state.horizon)[0], state.horizon)
+    const w = res.waterfall
+    const label = scenario ? scenario.label : res.scenarioLabel
     const line = (label2, value, cls) => `<tr class="${cls || ""}"><td class="py-1.5 pr-4 text-ink-soft">${label2}</td><td class="py-1.5 text-right font-mono tabular whitespace-nowrap">${value}</td></tr>`
     const rebateRow = w.rebateTotal > 0
-      ? line("Rebates kept in this option", `<span class="text-good">−${fmt(w.rebateTotal)}</span>`)
-      : offer.rebates.length
-        ? line(`Rebates <span class="text-ink-faint">(given up in this option)</span>`, `<span class="text-ink-faint">—</span>`)
+      ? line("Rebate kept in this option", `<span class="text-good">−${fmt(w.rebateTotal)}</span>`)
+      : rebateTotalOf(offer) > 0
+        ? line(`Rebate <span class="text-ink-faint">(given up in this option)</span>`, `<span class="text-ink-faint">—</span>`)
         : ""
     return `
       <div class="panel panel-strong min-w-0 bg-paper p-4 sm:p-5">
@@ -346,7 +212,6 @@
           <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">${esc(label).toUpperCase()}</p>
           <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">OTD <span class="text-sm font-semibold text-ink">${fmt(w.outTheDoor)}</span></p>
         </div>
-        ${res ? `
         <div class="mb-3 grid grid-cols-2 gap-3 border-b border-hairline pb-3">
           <div>
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">MONTHLY PAYMENT — OUR MATH</p>
@@ -356,23 +221,14 @@
           <div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">AMOUNT FINANCED</p>
             <p class="font-mono text-xl font-semibold tabular">${fmt(res.amountFinanced)}</p>
-            <p class="text-[0.6875rem] text-ink-faint">after ${fmt0(offer.financing.downPayment)} down${offer.financing.tradeInValue ? " + trade" : ""}</p>
+            <p class="text-[0.6875rem] text-ink-faint">after ${fmt0(offer.financing.downPayment)} down</p>
           </div>
-        </div>` : ""}
+        </div>
         <table class="w-full text-[0.8125rem]">
-          ${w.factoryDiscount ? line("Sticker before discounts", fmt(w.stickerBeforeDiscounts)) : ""}
-          ${line("Total MSRP", fmt(w.msrp))}
-          ${w.marketAdjustment ? line(`<span class="text-bad">Dealer markup</span>`, `<span class="text-bad">+${fmt(w.marketAdjustment)}</span>`) : ""}
-          ${line("Dealer discount", `<span class="text-good">−${fmt(w.dealerDiscount)}</span>`)}
-          ${line("<strong>Selling price</strong>", `<strong>${fmt(w.sellingPrice)}</strong>`, "border-t border-hairline")}
-          ${w.accessoriesCharged ? line("Dealer add-ons charged", "+" + fmt(w.accessoriesCharged)) : ""}
-          ${w.taxableFees ? line("Taxable fees (doc fee)", "+" + fmt(w.taxableFees)) : ""}
-          ${line("<strong>Taxable subtotal</strong>", `<strong>${fmt(w.taxableSubtotal)}</strong>`, "border-t border-hairline")}
+          ${line("Total MSRP (sticker)", fmt(w.msrp))}
+          ${w.marketAdjustment ? line(`<span class="text-bad">Quoted above sticker</span>`, `<span class="text-bad">+${fmt(w.marketAdjustment)}</span>`) : ""}
+          ${w.dealerDiscount ? line("Off sticker in this quote", `<span class="text-good">−${fmt(w.dealerDiscount)}</span>`) : ""}
           ${rebateRow}
-          ${line("<strong>Cash price</strong>", `<strong>${fmt(w.cashPrice)}</strong>`, "border-t border-hairline")}
-          ${line(`Sales tax @ ${fmtPct(w.computedTax.rateUsed)} <span class="text-ink-faint">(${w.computedTax.rebateReducedBase ? "after rebates" : "before rebates — most states"})</span>`, "+" + fmt(w.computedTax.totalTax))}
-          ${w.dealerStatedTax != null ? line(`Dealer's stated tax <span class="text-ink-faint">(pinned${taxDelta && Math.abs(taxDelta) > 50 ? `, ${taxDelta > 0 ? "higher" : "lower"} by ${fmt(Math.abs(taxDelta))}` : ""})</span>`, "+" + fmt(w.dealerStatedTax)) : ""}
-          ${line("Government fees (title, registration…)", "+" + fmt(w.nonTaxableFees))}
           ${line("<strong>OUT THE DOOR</strong>", `<strong class="text-base">${fmt(w.outTheDoor)}</strong>`, "border-t-2 border-ink")}
         </table>
         ${includedItemsOf(offer).length ? `
@@ -382,34 +238,20 @@
       </div>`
   }
 
-  function waterfallDetail(offer) {
-    if (!offer.msrp) return ""
+  function breakdownDetail(offer) {
     const scenarios = offer.scenarios.length ? offer.scenarios : [null]
-    const cards = scenarios.map((s) => waterfallCard(offer, s)).join("")
-
-    // Teach while showing: explain what the cards mean and how this state
-    // treats rebates in the tax math
-    const rule = getStateRule(offer.taxJurisdiction.stateCode)
+    const cards = scenarios.map((s) => breakdownCard(offer, s)).join("")
     const notes = []
-    notes.push("Every line above comes straight from what you entered — check it against the dealer's worksheet line by line.")
+    notes.push("Your quoted OTD already includes tax, fees, and the rebate — we don't split those out in quick compare; we compare bottom lines.")
     if (offer.scenarios.length) {
       notes.push("The monthly payment is our math, not the dealer's quote: the amount financed, amortized at the APR and months you entered. If the dealer quotes a higher payment for the same numbers, something is buried in it — ask why.")
     }
-    if (scenarios.length > 1 && offer.rebates.length) {
-      notes.push("The cards differ only in the rebate line: that's the rebate-vs-low-APR trade, in dollars, before financing even starts.")
+    if (scenarios.length > 1 && rebateTotalOf(offer) > 0) {
+      notes.push("The cards differ only in the rebate line: a way that gives the rebate up pays your quote + the rebate. That's the rebate-vs-low-APR trade in dollars, before financing even starts.")
     }
-    if (rule) {
-      notes.push(rule.rebateIsTaxable
-        ? rule.name + " charges sales tax on the price BEFORE rebates — so giving up a rebate never changes the tax, only the cash price. Most calculators get this wrong."
-        : rule.name + " charges sales tax on the price AFTER rebates — so keeping a rebate also lowers your tax.")
-    }
-    if (offer.dealerStatedTax == null) {
-      notes.push("Tax shown is our estimate. When you have the dealer's worksheet, enter their tax number in section A and we'll pin it and flag any gap.")
-    }
-
     return `
     <details class="border-t border-hairline">
-      <summary class="cursor-pointer px-4 py-3 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint hover:text-ink sm:px-5">SHOW THE WATERFALL — MSRP TO OUT THE DOOR${scenarios.length > 1 ? ", PER WAY TO PAY" : ""}</summary>
+      <summary class="cursor-pointer px-4 py-3 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint hover:text-ink sm:px-5">SHOW THE BREAKDOWN${scenarios.length > 1 ? " — PER WAY TO PAY" : ""}</summary>
       <div class="grid gap-4 px-4 pb-3 sm:px-5 ${scenarios.length > 1 ? "lg:grid-cols-2" : "lg:max-w-xl"}">
         ${cards}
       </div>
@@ -422,8 +264,7 @@
   }
 
   // ── Derived sections ──────────────────────────────────────────
-  // Drafts are invisible here: only SAVED offers rank, chart, flag, score,
-  // or generate checklists
+  // Drafts are invisible here: only SAVED offers rank, chart, or checklist
   const savedOffers = () => state.offers.filter((o) => !o.draft)
 
   function renderDerived() {
@@ -432,14 +273,12 @@
 
     $("#comparison-section").classList.toggle("hidden", results.length < 2)
     $("#chart-section").classList.toggle("hidden", !chartFocusOffer())
-    $("#flags-section").classList.toggle("hidden", !has)
-    $("#score-section").classList.toggle("hidden", !has)
     $("#checklist-section").classList.toggle("hidden", !has)
 
     if (results.length >= 2) renderComparison(results)
     renderDealerVerdict(results)
     renderChart()
-    if (has) { renderFlags(); renderScores(); renderChecklist() }
+    if (has) renderChecklist()
   }
 
   function renderComparison(results) {
@@ -457,7 +296,7 @@
       <tbody>
         <tr class="row-headline"><td>Total cost @ ${state.horizon} mo</td>${results.map((r) => cell(r, "totalCost", fmt)).join("")}</tr>
         <tr><td>Out the door</td>${results.map((r) => `<td>${fmt(r.waterfall.outTheDoor)}</td>`).join("")}</tr>
-        <tr><td>Rebates in this path</td>${results.map((r) => `<td>${r.rebateTotal ? "−" + fmt(r.rebateTotal) : "—"}</td>`).join("")}</tr>
+        <tr><td>Rebate kept in this path</td>${results.map((r) => `<td>${r.rebateTotal ? "−" + fmt(r.rebateTotal) : "—"}</td>`).join("")}</tr>
         ${(() => {
           const byOffer = new Map(state.offers.map((o) => [o.id, includedValueOf(o)]))
           const values = results.map((r) => byOffer.get(r.offerId) || 0)
@@ -475,34 +314,29 @@
     </table>`
   }
 
-  // Which DEALER wins: best row per offer, ranked. Only renders once two or
-  // more different dealers are entered — the per-offer verdict handles the
-  // rebate-vs-APR question within one offer.
+  // Which DEALER wins: best row per offer, ranked, value-aware.
   function renderDealerVerdict(results) {
     const host = $("#dealer-verdict")
     if (!host) return
     const bestPerOffer = new Map()
     for (const r of results) {
-      if (!bestPerOffer.has(r.offerId)) bestPerOffer.set(r.offerId, r) // results arrive sorted
+      if (!bestPerOffer.has(r.offerId)) bestPerOffer.set(r.offerId, r)
     }
     const bests = Array.from(bestPerOffer.values()).sort((a, b) => a.totalCost - b.totalCost)
     if (bests.length < 2) { host.innerHTML = ""; return }
     const winner = bests[0], runnerUp = bests[1]
     const gap = Math.round(runnerUp.totalCost - winner.totalCost)
 
-    // Value on top of price: what each dealer throws in for free. Same price
-    // + a free bed liner beats same price without one.
     const winnerOffer = state.offers.find((o) => o.id === winner.offerId)
     const runnerOffer = state.offers.find((o) => o.id === runnerUp.offerId)
     const wVal = winnerOffer ? includedValueOf(winnerOffer) : 0
     const rVal = runnerOffer ? includedValueOf(runnerOffer) : 0
-    const effAdv = gap + wVal - rVal // winner's advantage counting extras
+    const effAdv = gap + wVal - rVal
     const extrasStrip = (wVal || rVal)
       ? `<p class="mt-2 font-mono text-[0.75rem] text-ink-soft">EXTRAS INCLUDED · ${esc(winner.offerLabel).toUpperCase()} ${fmt0(wVal)} · ${esc(runnerUp.offerLabel).toUpperCase()} ${fmt0(rVal)}</p>`
       : ""
 
     if (gap < 200) {
-      // Same money — does one of them simply give you more?
       if (Math.abs(wVal - rVal) >= 100) {
         const valWinner = wVal > rVal ? winner : runnerUp
         const valOffer = wVal > rVal ? winnerOffer : runnerOffer
@@ -524,7 +358,6 @@
       return
     }
 
-    // Clear price winner — but check whether the loser's extras change the story
     let valueSentence = ""
     if (wVal || rVal) {
       if (effAdv >= 200) {
@@ -540,13 +373,10 @@
         <p class="font-mono text-[0.625rem] tracking-[0.14em] text-good">BEST DEAL</p>
         <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(winner.offerLabel)} wins — ${fmt0(gap)} less than ${esc(runnerUp.offerLabel)} by your payoff date, paying via &ldquo;${esc(winner.scenarioLabel)}&rdquo;.${valueSentence}</p>
         <p class="mt-2 font-mono text-[0.75rem] text-ink-soft">${esc(winner.offerLabel).toUpperCase()} TOTAL ${fmt0(winner.totalCost)} · ${esc(runnerUp.offerLabel).toUpperCase()} TOTAL ${fmt0(runnerUp.totalCost)}</p>
-        ${extrasStrip}
       </div>`
   }
 
   function chartFocusOffer() {
-    // EVERY saved offer can be charted — no ways to pay entered means a flat
-    // cash-basis line, one way means one curve, several mean the crossover
     const eligible = savedOffers()
     if (!eligible.length) return null
     return eligible.find((o) => o.id === state.chartOfferId) || eligible[0]
@@ -573,8 +403,6 @@
     let verdictHtml
     let be = null
     if (offer.scenarios.length >= 2) {
-      // With 3+ ways, the verdict compares the two CHEAPEST at your horizon —
-      // the chart still draws every line
       const ranked = offer.scenarios
         .map((s) => ({ s, cost: evaluateScenario(offer, s, state.horizon).totalCost }))
         .sort((x, y) => x.cost - y.cost)
@@ -591,13 +419,13 @@
       verdictHtml = `
       <div class="panel border-dashed p-5">
         <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">ONE WAY TO PAY ENTERED</p>
-        <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The line below is this offer's total cost by payoff month. Add the dealer's other option (the rebate path or the 0% path) in this offer's editor and the chart will show exactly where the answer flips.</p>
+        <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The line below is this offer's total cost by payoff month. Add the dealer's other option (the rebate path or the 0% path) and the chart will show exactly where the answer flips.</p>
       </div>`
     } else {
       verdictHtml = `
       <div class="panel border-dashed p-5">
-        <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">NO FINANCING ENTERED — CASH BASIS</p>
-        <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The flat line below is this offer's out-the-door cost with all rebates applied and zero interest — what it costs if you pay in full. It still ranks in the comparison on that basis. Enter the dealer's financing choices in this offer's editor for the real picture.</p>
+        <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">NO WAYS TO PAY ENTERED — CASH BASIS</p>
+        <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The flat line below is this offer's out-the-door cost with the rebate applied and zero interest — what it costs if you pay in full. It still ranks in the comparison on that basis. Tap the typical choices in the offer's editor for the real picture.</p>
       </div>`
     }
 
@@ -605,66 +433,6 @@
 
     const curves = effectiveScenarios(offer, state.horizon).map((s) => ({ label: s.label, points: costCurve(offer, s) }))
     $("#chart").innerHTML = crossoverChart(curves, state.horizon, be)
-  }
-
-  function renderFlags() {
-    const blocks = savedOffers().map((offer) => {
-      const { flags } = offerComputed(offer)
-      if (!flags.length) return `
-        <div class="panel p-4">
-          <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">${esc(offer.label).toUpperCase()}</p>
-          <p class="mt-1 text-[0.875rem] text-good">Clean worksheet — nothing flagged. That's rarer than it should be.</p>
-        </div>`
-      return `
-      <div class="panel">
-        <p class="border-b border-hairline px-4 py-2.5 font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">${esc(offer.label).toUpperCase()} — ${flags.length} FLAG${flags.length > 1 ? "S" : ""}, RANKED BY DOLLARS</p>
-        ${flags.map((f) => `
-          <div class="flag flag-${f.severity} flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3 last:border-b-0">
-            <div class="min-w-0 flex-1">
-              <p class="font-semibold ${f.severity === "critical" ? "text-bad" : ""}">${esc(f.label)}
-                <span class="ml-2 font-mono text-[0.625rem] tracking-widest ${f.severity === "critical" || f.severity === "high" ? "text-bad" : f.severity === "medium" ? "text-warn" : "text-ink-faint"}">${f.severity.toUpperCase()}</span></p>
-              <p class="mt-1 text-[0.8125rem] leading-relaxed text-ink-soft">${esc(f.message)}</p>
-            </div>
-            <p class="font-mono text-base font-semibold tabular">${fmt0(f.amount)}</p>
-          </div>`).join("")}
-      </div>`
-    })
-    $("#flags").innerHTML = blocks.join("")
-  }
-
-  function renderScores() {
-    $("#scores").innerHTML = savedOffers().map((offer) => {
-      const { score } = offerComputed(offer)
-      return `
-      <div class="panel p-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">${esc(offer.label).toUpperCase()}</p>
-            <p class="mt-1 text-[0.875rem] font-semibold">${esc(score.band)}</p>
-          </div>
-          <p class="font-mono text-4xl font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}<span class="text-base text-ink-faint">/10</span></p>
-        </div>
-        <div class="mt-4 grid gap-2.5">
-          ${score.components.map((c) => `
-            <div>
-              <div class="flex items-baseline justify-between gap-4">
-                <p class="text-[0.8125rem] text-ink-soft">${esc(c.label)} <span class="font-mono text-[0.625rem] text-ink-faint">${Math.round(c.weight * 100)}%</span></p>
-                <p class="font-mono text-[0.8125rem] tabular">${(c.score * 10).toFixed(1)}</p>
-              </div>
-              <div class="scorebar mt-1"><span style="width:${(c.score * 100).toFixed(0)}%"></span></div>
-              <p class="mt-1 text-[0.6875rem] leading-relaxed text-ink-faint">${esc(c.detail)}</p>
-            </div>`).join("")}
-        </div>
-        ${score.improvements.length ? `
-        <div class="mt-4 border-t border-hairline pt-3">
-          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">WHAT WOULD MAKE THIS A 9–10</p>
-          <ul class="mt-2 grid gap-1.5 text-[0.8125rem] leading-relaxed text-ink-soft">
-            ${score.improvements.map((imp) => `<li class="flex gap-2"><span class="text-ink-faint">→</span>${esc(imp)}</li>`).join("")}
-          </ul>
-        </div>` : ""}
-        <p class="mt-3 text-[0.6875rem] leading-relaxed text-ink-faint">Honest scale: 8 is genuinely good, most buyers land 5–6, and a 10 takes luck about a specific unit as much as skill.</p>
-      </div>`
-    }).join("")
   }
 
   function renderChecklist() {

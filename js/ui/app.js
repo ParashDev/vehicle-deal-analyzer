@@ -3,9 +3,9 @@
 // never lost; structural changes rebuild both.
 
 ;(function (CDA) {
-  const { state, load, persist, detailedOffer, quickOffer, demoOffer, setPath, getPath,
+  const { state, load, persist, quickOffer, syncQuick, demoOffer, setPath, getPath,
     exportJson, importJson, renderAll, renderOffers, renderDerived, offerComputed,
-    parseMoney, parsePercent, parseApr, parseInt10, uid, getStateRule, esc,
+    parseMoney, parsePercent, parseApr, parseInt10, uid, esc,
     generateChecklist, checklistToText } = CDA
 
   // ── In-app modal — replaces window.confirm/alert ──────────────
@@ -120,17 +120,7 @@
       case "add-quick": {
         // New offers start as DRAFTS: excluded from every ranking until saved,
         // so half-typed zeros never produce a fake verdict
-        const offer = quickOffer({ label: "Offer " + (state.offers.length + 1), msrp: 0, otd: 0, down: 0, apr: 6.99, term: 60 })
-        offer.draft = true
-        state.offers.push(offer)
-        state.expandedOfferId = offer.id
-        structuralRender()
-        focusFirstField()
-        break
-      }
-      case "add-detailed": {
-        const offer = detailedOffer()
-        offer.label = "Offer " + (state.offers.length + 1)
+        const offer = quickOffer({ label: "Offer " + (state.offers.length + 1), msrp: 0, otd: 0, rebate: 0, down: 0, apr: 6.99, term: 60 })
         offer.draft = true
         state.offers.push(offer)
         state.expandedOfferId = offer.id
@@ -145,7 +135,7 @@
           notice("CAN'T SAVE YET", "Enter the Total MSRP from the window sticker first — everything is computed from it.")
           break
         }
-        if (offer.mode === "quick" && offer.msrp - offer.dealerDiscount + offer.marketAdjustment <= 0) {
+        if (!(offer.quickOtd > 0)) {
           notice("CAN'T SAVE YET", "Enter the out-the-door price the dealer quoted first.")
           break
         }
@@ -225,19 +215,10 @@
         })
         break
       }
-      case "add-rebate":
-        withOffer(id, (o) => o.rebates.push({ id: uid("rb"), label: "", amount: 0, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false }))
-        break
-      case "add-accessory":
-        withOffer(id, (o) => o.accessories.push({ id: uid("acc"), label: "", charged: 0, retailValue: 0, isNegotiable: true, category: "overpriced" }))
-        break
       case "add-included":
-        // Quick mode: dealer add-on included in the quoted OTD — charged 0
-        // so the price never moves; retailValue is what it's worth to you
+        // Dealer add-on included in the quoted OTD — charged 0 so the price
+        // never moves; retailValue is what it's worth to you
         withOffer(id, (o) => o.accessories.push({ id: uid("acc"), label: "", charged: 0, retailValue: 0, isNegotiable: false, category: "legit" }))
-        break
-      case "add-fee":
-        withOffer(id, (o) => o.fees.push({ id: uid("fee"), label: "", amount: 0, category: "dealer-junk", isTaxable: true }))
         break
       case "add-scenario":
         withOffer(id, (o) => o.scenarios.push({ id: uid("sc"), label: "Way to pay " + (o.scenarios.length + 1), apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 }))
@@ -421,15 +402,14 @@
     const type = el.dataset.type || "text"
     const raw = el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : el.value
 
-    // Quick-mode synthetic OTD: distribute into discount/adjustment vs MSRP
+    // The quoted OTD is its own field; syncQuick keeps the synthetic
+    // discount/markup split consistent with (msrp, quote, rebate)
     if (path.endsWith(".quickOtd")) {
       const offerPath = path.slice(0, -".quickOtd".length)
       const offer = getPath(state, offerPath)
       if (offer) {
-        const otd = parseMoney(String(raw))
-        offer.dealerDiscount = Math.max(0, offer.msrp - otd)
-        offer.marketAdjustment = Math.max(0, otd - offer.msrp)
-        offer.dealerStatedTax = 0
+        offer.quickOtd = parseMoney(String(raw))
+        syncQuick(offer)
       }
       return
     }
@@ -449,26 +429,11 @@
     }
     setPath(state, path, value)
 
-    // Changing the state ALWAYS resets the rate to that state's base rate —
-    // a rate typed for another state is meaningless here, and the previous
-    // only-if-empty seeding left the old state's rate silently in place.
-    // The user then adds their county/city % on top if there is one.
-    if (type === "state") {
-      const offerPath = path.split(".").slice(0, 2).join(".")
-      const offer = getPath(state, offerPath)
-      if (offer) {
-        const rule = getStateRule(String(value))
-        if (rule) {
-          offer.taxJurisdiction.salesTaxRate = rule.baseRate
-          // Title/registration re-seed to the new state's typical statutory
-          // amounts — the user overwrites with the dealer's exact numbers
-          for (const fee of offer.fees) {
-            if (fee.category !== "government") continue
-            if (/title/i.test(fee.label)) fee.amount = rule.titleFee
-            else if (/regist/i.test(fee.label)) fee.amount = rule.regTypical
-          }
-        }
-      }
+    // MSRP or rebate edits shift how the quoted OTD splits into
+    // discount/markup — keep the synthetic fields consistent
+    if (path.includes(".msrp") || /\.rebates\.\d+\.amount$/.test(path)) {
+      const offer = getPath(state, path.split(".").slice(0, 2).join("."))
+      if (offer) syncQuick(offer)
     }
   }
 })(window.CDA = window.CDA || {})

@@ -106,8 +106,7 @@
       </div>
       <!-- Stacked full-width on phones, inline row from sm up -->
       <div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
-        <button class="btn" data-action="add-detailed">+ Full worksheet — discounts, rebates, add-ons</button>
-        <button class="btn btn-ghost" data-action="add-quick">+ Quick compare (5 numbers)</button>
+        <button class="btn" data-action="add-quick">+ Add an offer</button>
         <button class="btn btn-ghost" data-action="load-demo">Load demo deal</button>
       </div>
       <div id="offers" class="mt-6 grid gap-6"></div>
@@ -137,25 +136,11 @@
         </p>
       </div>
 
-      <!-- Flags -->
-      <div id="flags-section" class="mt-14 hidden">
-        <p class="section-code">§ 04 — Flags</p>
-        <h2 class="mt-2 text-2xl font-extrabold tracking-tight">What shouldn't be here</h2>
-        <div id="flags" class="mt-5 grid gap-3"></div>
-      </div>
-
-      <!-- Score -->
-      <div id="score-section" class="mt-14 hidden">
-        <p class="section-code">§ 05 — Deal score</p>
-        <h2 class="mt-2 text-2xl font-extrabold tracking-tight">How good is this deal, really?</h2>
-        <div id="scores" class="mt-5 grid gap-6 lg:grid-cols-2"></div>
-      </div>
-
       <!-- Checklist -->
       <div id="checklist-section" class="mt-14 hidden">
         <div class="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p class="section-code">§ 06 — Take this with you</p>
+            <p class="section-code">§ 04 — Take this with you</p>
             <h2 class="mt-2 text-2xl font-extrabold tracking-tight">Your question checklist</h2>
           </div>
           <div class="flex gap-2">
@@ -213,7 +198,6 @@
   <script src="js/lib/amortize.js"></script>
   <script src="js/lib/compare.js"></script>
   <script src="js/lib/flags.js"></script>
-  <script src="js/lib/score.js"></script>
   <script src="js/lib/checklist.js"></script>
   <script src="js/ui/format.js"></script>
   <script src="js/ui/store.js"></script>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vehicle Deal Analyzer — True Out-the-Door Price Comparison</title>
-  <meta name="description" content="Free vehicle deal analyzer. Compare dealer offers by true out-the-door price, see whether the cash rebate or 0% APR wins for your payoff plan, and catch junk fees before you sign. No signup." />
+  <meta name="description" content="Free vehicle deal analyzer. Compare dealer offers by true out-the-door price, see whether the cash rebate or 0% APR wins for your payoff plan, and which dealer gives you more for the money. No signup." />
   <meta name="keywords" content="vehicle deal analyzer, car deal analyzer, out the door price calculator, compare car dealer offers, rebate vs 0% APR, rebate or low APR calculator, car buying junk fees, doc fee by state, dealer worksheet explained, total cost of car loan, early payoff car loan calculator, car deal checker, negotiate car price questions" />
   <link rel="canonical" href="https://vehicle-deal-analyzer.dplooy.com/" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -13,11 +13,11 @@
   <meta property="og:url" content="https://vehicle-deal-analyzer.dplooy.com/" />
   <meta property="og:site_name" content="Vehicle Deal Analyzer" />
   <meta property="og:title" content="Vehicle Deal Analyzer — True Out-the-Door Price Comparison" />
-  <meta property="og:description" content="Compare dealer offers by what they actually cost. Rebate vs 0% APR solved for YOUR payoff plan. Junk fees flagged. Free, no signup, runs in your browser." />
+  <meta property="og:description" content="Compare dealer offers by what they actually cost. Rebate vs 0% APR solved for YOUR payoff plan. Dealer vs dealer, included extras counted. Free, no signup, runs in your browser." />
   <meta property="og:image" content="https://vehicle-deal-analyzer.dplooy.com/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Vehicle Deal Analyzer — True Out-the-Door Price Comparison" />
-  <meta name="twitter:description" content="Rebate or 0% APR? Solved for your actual payoff plan — plus junk-fee detection and the questions to ask before you sign." />
+  <meta name="twitter:description" content="Rebate or 0% APR? Solved for your actual payoff plan — plus dealer-vs-dealer verdicts and the questions to ask before you sign." />
   <meta name="twitter:image" content="https://vehicle-deal-analyzer.dplooy.com/og.png" />
 
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
@@ -59,16 +59,14 @@
         "applicationCategory": "FinanceApplication",
         "operatingSystem": "Web Browser",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "description": "Compare car dealer offers by true out-the-door price, decide between a cash rebate and promotional low APR for your actual payoff plan, and detect junk fees and add-ons before signing.",
+        "description": "Compare vehicle dealer offers by true out-the-door price, decide between a cash rebate and promotional low APR for your actual payoff plan, and see which dealer's quote wins in dollars and included value.",
         "featureList": [
-          "Out-the-door price waterfall for every offer",
+          "Out-the-door quote comparison across dealers",
           "Rebate vs 0% APR breakeven solved for your payoff horizon",
-          "Total cost of ownership ranking across every offer and scenario",
-          "Junk fee and add-on detection with dollar impact",
-          "Doc fee check against every state's cap and typical",
-          "Sales tax verification with state-by-state rebate taxability",
-          "Personalized printable question checklist",
-          "1-10 deal score with a visible breakdown"
+          "Total cost of ownership ranking for every offer and way to pay",
+          "Included add-ons ranked as value — same price, more vehicle",
+          "Monthly payment computed from your numbers, not the dealer's",
+          "Interactive printable question checklist"
         ],
         "publisher": { "@type": "Organization", "name": "dplooy", "url": "https://www.dplooy.com" }
       },
@@ -82,7 +80,7 @@
         "@type": "HowTo",
         "name": "How to compare car dealer offers by out-the-door price",
         "step": [
-          { "@type": "HowToStep", "name": "Enter each offer", "text": "Transcribe each dealer worksheet line by line — MSRP, discounts, rebates, fees, tax — or use Quick mode with just five numbers." },
+          { "@type": "HowToStep", "name": "Enter each offer", "text": "Five numbers per dealer quote: MSRP, the out-the-door price, the rebate inside it, your down payment — plus anything the dealer includes." },
           { "@type": "HowToStep", "name": "Set your payoff horizon", "text": "Tell the tool when you actually plan to pay the loan off, not just the contract term. Every number recomputes around it." },
           { "@type": "HowToStep", "name": "Read the verdict", "text": "The analyzer ranks every offer and financing scenario by total cost of ownership and shows the exact month where rebate-vs-APR flips." },
           { "@type": "HowToStep", "name": "Take the checklist", "text": "Print the personalized question list built from your numbers and carry it into the dealership." }
@@ -155,10 +153,10 @@
             Know the real out-the-door price before you sign.
           </h1>
           <p class="rise rise-3 mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-ink-soft">
-            Enter each dealer's worksheet. The analyzer normalizes every offer to a true
-            out-the-door number, solves whether the <strong class="text-ink">cash rebate or the 0% APR</strong>
-            actually costs less for <em>your</em> payoff plan, and flags the junk fees —
-            then hands you the questions to ask.
+            Five numbers per dealer quote. The analyzer solves whether the
+            <strong class="text-ink">cash rebate or the 0% APR</strong> actually costs less for
+            <em>your</em> payoff plan, names the winning dealer in dollars, ranks what each one
+            throws in — then hands you the questions to ask before you sign.
           </p>
           <div class="rise rise-4 mt-7 flex flex-wrap gap-3">
             <a href="analyzer.html" class="btn">Start comparing offers</a>
@@ -170,23 +168,22 @@
         </div>
 
         <!-- Static worksheet exhibit — real HTML, crawlable -->
-        <figure class="panel panel-strong rise rise-3 p-5" aria-label="Example out-the-door waterfall">
-          <figcaption class="section-code mb-3">Exhibit A — the waterfall</figcaption>
+        <figure class="panel panel-strong rise rise-3 p-5" aria-label="Example rebate versus zero percent comparison">
+          <figcaption class="section-code mb-3">Exhibit A — one quote, two prices</figcaption>
           <table class="w-full font-mono text-[0.8125rem] tabular">
             <tbody>
-              <tr><td class="py-1 text-ink-soft">Total MSRP</td><td class="py-1 text-right">36,490.00</td></tr>
-              <tr><td class="py-1 text-ink-soft">Dealer discount</td><td class="py-1 text-right text-good">−3,340.00</td></tr>
-              <tr class="border-t border-hairline"><td class="py-1 font-semibold">Selling price</td><td class="py-1 text-right font-semibold">33,150.00</td></tr>
-              <tr><td class="py-1 text-ink-soft">Doc fee (taxable)</td><td class="py-1 text-right">+250.00</td></tr>
-              <tr><td class="py-1 text-ink-soft">Rebates</td><td class="py-1 text-right text-good">−2,000.00</td></tr>
-              <tr><td class="py-1 text-ink-soft">Sales tax · pre-rebate basis</td><td class="py-1 text-right">+2,505.00</td></tr>
-              <tr><td class="py-1 text-ink-soft">Government fees</td><td class="py-1 text-right">+100.00</td></tr>
-              <tr class="border-t-2 border-ink"><td class="py-1.5 font-semibold">OUT THE DOOR</td><td class="py-1.5 text-right text-base font-semibold">34,005.00</td></tr>
+              <tr><td class="py-1 text-ink-soft">Total MSRP (sticker)</td><td class="py-1 text-right">36,490.00</td></tr>
+              <tr class="border-t border-hairline"><td class="py-1 font-semibold">Quoted out the door</td><td class="py-1 text-right font-semibold">34,005.00</td></tr>
+              <tr><td class="py-1 pl-3 text-ink-faint">rebate inside that quote</td><td class="py-1 text-right text-good">−2,000.00</td></tr>
+              <tr><td class="py-1 pl-3 text-ink-faint">financed @ 5.99% · 72 mo</td><td class="py-1 text-right text-ink-faint"></td></tr>
+              <tr class="border-t border-hairline"><td class="py-1 font-semibold">Same deal at 0% APR</td><td class="py-1 text-right font-semibold">36,005.00</td></tr>
+              <tr><td class="py-1 pl-3 text-ink-faint">rebate given up · 60 mo</td><td class="py-1 text-right text-ink-faint"></td></tr>
+              <tr class="border-t-2 border-ink"><td class="py-1.5 font-semibold text-good">BEST AT 30 MONTHS</td><td class="py-1.5 text-right text-base font-semibold text-good">0% · $1,210 AHEAD</td></tr>
             </tbody>
           </table>
           <p class="mt-3 text-[0.75rem] leading-relaxed text-ink-faint">
-            Most states tax the <span class="text-ink-soft">pre-rebate</span> price. Most calculators miss it.
-            This one doesn't.
+            The rebate only wins if you pay off before month 17. Most calculators can't tell you that.
+            This one charts it.
           </p>
         </figure>
       </div>
@@ -204,8 +201,8 @@
             <p class="font-mono text-2xl font-semibold text-ink-faint">1</p>
             <h3 class="mt-2 font-semibold">What does each offer really cost?</h3>
             <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">
-              Every offer normalized to its all-in, out-the-door number — selling price,
-              accessories, doc fee, correctly computed tax, and TTL — so they're finally comparable.
+              Every dealer's bottom-line, out-the-door quote ranked by total money out of your
+              pocket by <em>your</em> payoff date — not by the monthly payment they sell you.
             </p>
           </div>
           <div class="bg-raised p-6">
@@ -218,11 +215,10 @@
           </div>
           <div class="bg-raised p-6">
             <p class="font-mono text-2xl font-semibold text-ink-faint">3</p>
-            <h3 class="mt-2 font-semibold">What shouldn't be on this worksheet?</h3>
+            <h3 class="mt-2 font-semibold">Which same-price offer is worth more?</h3>
             <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">
-              Nitrogen fill, VIN etching, "appearance protection", market adjustment,
-              doc fees over the legal cap — flagged by dollar impact, with the exact
-              words to challenge each one.
+              Two quotes at the same OTD aren't equal if one throws in the bed liner and mats.
+              List what each dealer includes and the tool ranks value — same money, more vehicle.
             </p>
           </div>
         </div>
@@ -237,8 +233,8 @@
         <ol class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <li class="panel p-5">
             <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">STEP 01</p>
-            <h3 class="mt-2 font-semibold">Transcribe each worksheet</h3>
-            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">The form mirrors a real dealer worksheet top to bottom. Quick mode needs five numbers and sixty seconds; Detailed mode captures every line.</p>
+            <h3 class="mt-2 font-semibold">Enter each quote</h3>
+            <p class="mt-2 text-[0.875rem] leading-relaxed text-ink-soft">Five numbers per dealer: MSRP, the quoted out-the-door price, the rebate inside it, and your down payment — plus whatever they throw in. Sixty seconds per offer.</p>
           </li>
           <li class="panel p-5">
             <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">STEP 02</p>

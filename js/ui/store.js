@@ -28,6 +28,15 @@
         state.horizon = saved.horizon || 36
         state.chartOfferId = saved.chartOfferId || null
         state.checklistDone = saved.checklistDone || {}
+        // Migrate quick offers from before the rebate-aware model
+        for (const o of state.offers) {
+          if (o.mode === "quick" && o.quickOtd == null) {
+            o.quickOtd = Math.max(0, o.msrp - o.dealerDiscount + o.marketAdjustment)
+            if (!o.rebates || !o.rebates.length) {
+              o.rebates = [{ id: uid("rb"), label: "Rebate", amount: 0, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false }]
+            }
+          }
+        }
         // An edit session that never got saved reverts on reload — "not
         // saved" means not saved
         if (saved.editBackup) {
@@ -52,116 +61,74 @@
   }
 
   function blankFinancing() {
-    return { downPayment: 0, tradeInValue: 0, tradeInPayoff: 0, apr: 0, termMonths: 60, isSimpleInterest: true, hasPrepaymentPenalty: false }
+    // hasPrepaymentPenalty starts unknown so the checklist asks the
+    // simple-interest / Rule-of-78s question until the buyer verifies it
+    return { downPayment: 0, tradeInValue: 0, tradeInPayoff: 0, apr: 0, termMonths: 60, isSimpleInterest: true, hasPrepaymentPenalty: undefined }
   }
 
-  function standardFees(stateCode) {
-    // Title/registration start at the state's typical statutory amounts —
-    // estimates the user overwrites with the dealer's exact numbers
-    const rule = CDA.getStateRule(stateCode || "TX")
-    return [
-      { id: uid("fee"), label: "Doc Fee", amount: 0, category: "doc", isTaxable: true },
-      { id: uid("fee"), label: "Title", amount: rule ? rule.titleFee : 0, category: "government", isTaxable: false },
-      { id: uid("fee"), label: "Registration", amount: rule ? rule.regTypical : 0, category: "government", isTaxable: false },
-    ]
+  // (The detailed worksheet mode was removed — quick compare IS the tool.)
+
+  // Quick offer: the entered OTD is authoritative AND — as dealers quote it —
+  // already includes any rebate. syncQuick() splits the MSRP→OTD gap so the
+  // rebate lives in a real rebate entry: a way to pay that KEEPS it prices at
+  // the quoted OTD, one that GIVES IT UP prices at quoted + rebate.
+  function syncQuick(offer) {
+    if (offer.mode !== "quick") return
+    const rebateTotal = (offer.rebates || []).reduce((s, r) => s + (r.amount || 0), 0)
+    const q = offer.quickOtd || 0
+    offer.dealerDiscount = Math.max(0, offer.msrp - q - rebateTotal)
+    offer.marketAdjustment = Math.max(0, q + rebateTotal - offer.msrp)
   }
 
-  function detailedOffer() {
-    return {
-      id: uid("offer"), mode: "detailed", label: "New offer", dealerName: "",
-      vehicle: blankVehicle(),
-      msrp: 0, factoryDiscount: 0, dealerDiscount: 0, marketAdjustment: 0,
-      rebates: [], accessories: [], fees: standardFees(),
-      financing: blankFinancing(),
-      taxJurisdiction: { stateCode: "TX", salesTaxRate: 0.0625, extraTaxes: [] },
-      dealerStatedTax: null,
-      // Starts empty — the "typical choice" chips in section G add pre-filled
-      // ways to pay, so a default row here would just be noise
-      scenarios: [],
-    }
-  }
-
-  // Quick offer: the entered OTD is authoritative — tax pinned at $0, the
-  // whole MSRP→OTD gap lives in dealerDiscount/marketAdjustment so the
-  // waterfall reproduces the OTD exactly.
   function quickOffer(q) {
-    return {
+    const offer = {
       id: uid("offer"), mode: "quick", label: q.label || "Quick offer", dealerName: "",
       vehicle: blankVehicle(),
       msrp: q.msrp, factoryDiscount: 0,
-      dealerDiscount: Math.max(0, q.msrp - q.otd), marketAdjustment: Math.max(0, q.otd - q.msrp),
-      rebates: [], accessories: [], fees: [],
+      quickOtd: q.otd,
+      dealerDiscount: 0, marketAdjustment: 0,
+      rebates: [
+        { id: uid("rb"), label: "Rebate", amount: q.rebate || 0, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false },
+      ],
+      accessories: [], fees: [],
       financing: Object.assign(blankFinancing(), { downPayment: q.down, apr: q.apr, termMonths: q.term }),
       taxJurisdiction: { stateCode: "TX", salesTaxRate: 0, extraTaxes: [] },
       dealerStatedTax: 0,
-      scenarios: [
-        { id: uid("sc"), label: q.apr + "% for " + q.term + " mo", apr: q.apr, termMonths: q.term, rebatesApplied: [], bonusCash: 0 },
-      ],
+      scenarios: [],
     }
+    syncQuick(offer)
+    return offer
   }
 
-  // The Colorado demo deal — same numbers as the test fixture.
+  // Demo deals — pure quick offers. Riverbend's numbers reproduce the
+  // hand-verified fixture: quoted $34,005 includes the $2,000 rebate, so the
+  // rebate way prices at 34,005 and the 0% way at 36,005.
   function demoOffer() {
-    const rebateId = uid("rb")
-    return {
-      id: uid("offer"), mode: "detailed", label: "Riverbend Chevrolet (demo)", dealerName: "Riverbend Chevrolet",
-      vehicle: { year: 2026, make: "Chevrolet", model: "Colorado", trim: "LT Crew Cab 2WD", vin: "", stockNumber: "DEMO-0001", daysOnLot: 45 },
-      msrp: 36490, factoryDiscount: 750, dealerDiscount: 3340, marketAdjustment: 0,
-      rebates: [
-        { id: rebateId, label: "Retail Bonus Cash", amount: 2000, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false },
-      ],
-      // charged 0 = thrown in free: never changes the OTD, counts as value
-      accessories: [
-        { id: uid("acc"), label: "Spray-in bed liner (included)", charged: 0, retailValue: 450, isNegotiable: false, category: "legit" },
-      ],
-      fees: [
-        { id: uid("fee"), label: "Doc Fee", amount: 250, category: "doc", isTaxable: true },
-        { id: uid("fee"), label: "Title", amount: 15, category: "government", isTaxable: false },
-        { id: uid("fee"), label: "Registration", amount: 66, category: "government", isTaxable: false },
-        { id: uid("fee"), label: "Plate", amount: 4.5, category: "government", isTaxable: false },
-        { id: uid("fee"), label: "Electronic Filing", amount: 14.5, category: "government", isTaxable: false },
-      ],
-      financing: { downPayment: 8000, tradeInValue: 0, tradeInPayoff: 0, apr: 5.99, termMonths: 72, isSimpleInterest: true, hasPrepaymentPenalty: false },
-      taxJurisdiction: { stateCode: "OH", salesTaxRate: 0.075, extraTaxes: [] },
-      dealerStatedTax: null,
-      scenarios: [
-        { id: uid("sc"), label: "Take $2,000 rebate @ 5.99%", apr: 5.99, termMonths: 72, rebatesApplied: [rebateId], bonusCash: 0 },
-        { id: uid("sc"), label: "0% APR, forfeit rebates", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
-      ],
-    }
+    const o = quickOffer({ label: "Riverbend Chevrolet (demo)", msrp: 36490, otd: 34005, rebate: 2000, down: 8000, apr: 5.99, term: 72 })
+    o.dealerName = "Riverbend Chevrolet"
+    o.vehicle.daysOnLot = 45
+    o.rebates[0].label = "Retail Bonus Cash"
+    o.accessories.push({ id: uid("acc"), label: "Spray-in bed liner (included)", charged: 0, retailValue: 450, isNegotiable: false, category: "legit" })
+    o.scenarios = [
+      { id: uid("sc"), label: "Take $2,000 rebate @ 5.99%", apr: 5.99, termMonths: 72, rebatesApplied: [o.rebates[0].id], bonusCash: 0 },
+      { id: uid("sc"), label: "0% APR, give up rebate", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
+    ]
+    return o
   }
 
-  // Second demo dealer: same truck, weaker discount, a junk add-on or two,
-  // slightly higher rate — so the demo shows dealer-vs-dealer ranking, the
-  // flags firing, and different scores, not just one clean worksheet.
+  // Second demo dealer: same truck, higher quote, slightly worse rate, and
+  // nothing thrown in — so the demo shows dealer-vs-dealer ranking and the
+  // value story, not just one clean quote.
   function demoOffer2() {
-    const rebateId = uid("rb")
-    return {
-      id: uid("offer"), mode: "detailed", label: "Northgate Chevrolet (demo)", dealerName: "Northgate Chevrolet",
-      vehicle: { year: 2026, make: "Chevrolet", model: "Colorado", trim: "LT Crew Cab 2WD", vin: "", stockNumber: "DEMO-0002", daysOnLot: 82 },
-      msrp: 36490, factoryDiscount: 750, dealerDiscount: 2600, marketAdjustment: 0,
-      rebates: [
-        { id: rebateId, label: "Retail Bonus Cash", amount: 2000, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false },
-      ],
-      accessories: [
-        { id: uid("acc"), label: "Appearance Protection Package", charged: 499, retailValue: 50, isNegotiable: true, category: "junk" },
-        { id: uid("acc"), label: "Nitrogen Fill", charged: 199, retailValue: 0, isNegotiable: true, category: "junk" },
-      ],
-      fees: [
-        { id: uid("fee"), label: "Doc Fee", amount: 250, category: "doc", isTaxable: true },
-        { id: uid("fee"), label: "Title", amount: 15, category: "government", isTaxable: false },
-        { id: uid("fee"), label: "Registration", amount: 66, category: "government", isTaxable: false },
-        { id: uid("fee"), label: "Plate", amount: 4.5, category: "government", isTaxable: false },
-        { id: uid("fee"), label: "Electronic Filing", amount: 14.5, category: "government", isTaxable: false },
-      ],
-      financing: { downPayment: 8000, tradeInValue: 0, tradeInPayoff: 0, apr: 6.49, termMonths: 72, isSimpleInterest: true, hasPrepaymentPenalty: false },
-      taxJurisdiction: { stateCode: "OH", salesTaxRate: 0.075, extraTaxes: [] },
-      dealerStatedTax: null,
-      scenarios: [
-        { id: uid("sc"), label: "Take $2,000 rebate @ 6.49%", apr: 6.49, termMonths: 72, rebatesApplied: [rebateId], bonusCash: 0 },
-        { id: uid("sc"), label: "0% APR, forfeit rebates", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
-      ],
-    }
+    const o = quickOffer({ label: "Northgate Chevrolet (demo)", msrp: 36490, otd: 35100, rebate: 2000, down: 8000, apr: 6.49, term: 72 })
+    o.dealerName = "Northgate Chevrolet"
+    o.vehicle.daysOnLot = 82
+    o.rebates[0].label = "Retail Bonus Cash"
+    o.scenarios = [
+      { id: uid("sc"), label: "Take $2,000 rebate @ 6.49%", apr: 6.49, termMonths: 72, rebatesApplied: [o.rebates[0].id], bonusCash: 0 },
+      { id: uid("sc"), label: "0% APR, give up rebate", apr: 0, termMonths: 60, rebatesApplied: [], bonusCash: 0 },
+    ]
+    return o
   }
 
   function setPath(obj, path, value) {
@@ -188,5 +155,5 @@
     persist()
   }
 
-  Object.assign(CDA, { state, load, persist, detailedOffer, quickOffer, demoOffer, demoOffer2, setPath, getPath, exportJson, importJson })
+  Object.assign(CDA, { state, load, persist, quickOffer, syncQuick, demoOffer, demoOffer2, setPath, getPath, exportJson, importJson })
 })(window.CDA = window.CDA || {})
