@@ -153,7 +153,7 @@
           ${offer.accessories.length ? `<p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">WHAT IT IS · WHAT IT'S WORTH</p>` : ""}
           ${offer.accessories.map((a, ai) => `
             <div class="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2">
-              <input class="cell cell-text" data-path="${p}.accessories.${ai}.label" data-type="text" value="${esc(a.label)}" placeholder="Spray-in bed liner" />
+              <input class="cell cell-text" data-path="${p}.accessories.${ai}.label" data-type="text" value="${esc(a.label)}" placeholder="e.g. all-weather mats, tint, bed liner" />
               <input class="cell" inputmode="decimal" data-path="${p}.accessories.${ai}.retailValue" data-type="money" value="${a.retailValue}" title="What it's worth" />
               <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.accessories" data-index="${ai}" aria-label="Remove add-on">×</button>
             </div>`).join("")}
