@@ -46,7 +46,10 @@
       priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of its sticker vs your offers' median of " + (pb.median * 100).toFixed(1) + "% (best: " + (pb.best * 100).toFixed(1) + "%). At the median scores 6; the best of your set scores 10."
     } else {
       priceScore = clamp01((1.10 - ratio) / 0.20)
-      priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of MSRP — tax & fees live in the quote, so ~100% is typical, ~90% exceptional. Add another offer to grade prices against each other."
+      priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of MSRP — tax & fees live in the quote, so ~100% is typical, ~90% exceptional. " +
+        (opts.priceContext === "different-vehicles"
+          ? "Judged on its own sticker: different vehicles discount differently, so their prices aren't ranked head-to-head."
+          : "Add another offer for this vehicle to grade prices head-to-head.")
     }
 
     // 2) Financing quality (25%) — the best way's APR vs the benchmark

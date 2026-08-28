@@ -60,14 +60,21 @@
       median: incValues.length % 2 ? incValues[incMid] : (incValues[incMid - 1] + incValues[incMid]) / 2,
       max: Math.max.apply(null, incValues),
     } : null
-    // Price head-to-head: best and median quoted-OTD-to-sticker ratios
-    const priceRatios = peers.filter((o) => o.msrp > 0).map((o) => (o.quickOtd || 0) / o.msrp).sort((a, b) => a - b)
+    // Price head-to-head ONLY among same-vehicle offers (MSRPs within ~2%):
+    // %-of-sticker across DIFFERENT vehicles rewards the segment that
+    // structurally discounts deeper — usually the cheaper one — so a
+    // different-vehicle offer is judged on its own sticker instead.
+    const sameGroup = offer.msrp > 0
+      ? peers.filter((o) => o.msrp > 0 && Math.abs(o.msrp - offer.msrp) / offer.msrp <= 0.02)
+      : []
+    const priceRatios = sameGroup.map((o) => (o.quickOtd || 0) / o.msrp).sort((a, b) => a - b)
     const prMid = Math.floor(priceRatios.length / 2)
     const priceBench = priceRatios.length >= 2 ? {
       best: priceRatios[0],
       median: priceRatios.length % 2 ? priceRatios[prMid] : (priceRatios[prMid - 1] + priceRatios[prMid]) / 2,
     } : null
-    const score = scoreQuickDeal(offer, best, { aprBenchmark: bench.value, benchmarkLabel: bench.label, relative, includedBench, priceBench })
+    const priceContext = priceBench ? "group" : (peers.length >= 2 ? "different-vehicles" : "single")
+    const score = scoreQuickDeal(offer, best, { aprBenchmark: bench.value, benchmarkLabel: bench.label, relative, includedBench, priceBench, priceContext })
     return { results, best, flags, score }
   }
 
