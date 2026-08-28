@@ -46,11 +46,13 @@
     // 2) Financing quality (25%) — the best way's APR vs the benchmark
     //    (median of the standard-rate ways across YOUR offers when there are
     //    peers; a 7% market default otherwise).
+    // Symmetric around the median: at the median = 6, ±2 score-points per
+    // 1% of APR in either direction (so 2 points under your median = 10,
+    // 3 points over = 0). 0% promos always score 10.
     const apr = best ? best.apr : 7
     let financeScore
     if (apr <= 0) financeScore = 1
-    else if (apr <= benchmark) financeScore = 0.6 + 0.4 * (1 - apr / benchmark)
-    else financeScore = clamp01(0.6 - ((apr - benchmark) / 3) * 0.6)
+    else financeScore = clamp01(0.6 + (benchmark - apr) * 0.2)
 
     // 3) Included value (10%) — graded against your offers: at the median of
     //    what your dealers include = 0.6, the most generous = 1.0, nothing
