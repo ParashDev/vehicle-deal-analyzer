@@ -65,7 +65,7 @@
 
   function checklistToText(sections) {
     return sections
-      .map((s) => s.title.toUpperCase() + "\n" + s.items.map((i) => "  [ ] " + (i.critical ? "CRITICAL: " : "") + i.text).join("\n"))
+      .map((s) => s.title.toUpperCase() + "\n" + s.items.map((i) => "  [" + (i.done ? "x" : " ") + "] " + (i.critical ? "CRITICAL: " : "") + i.text).join("\n"))
       .join("\n\n")
   }
 

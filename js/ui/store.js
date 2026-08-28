@@ -13,6 +13,9 @@
     // Snapshot of a saved offer taken when its editor opens — Save commits,
     // Cancel (or a reload) restores it. {offerId, data} or null.
     editBackup: null,
+    // Ticked checklist items, keyed offerId|itemText (a changed question
+    // resets its tick — the question is different now)
+    checklistDone: {},
   }
 
   function load() {
@@ -24,6 +27,7 @@
         state.offers = saved.offers
         state.horizon = saved.horizon || 36
         state.chartOfferId = saved.chartOfferId || null
+        state.checklistDone = saved.checklistDone || {}
         // An edit session that never got saved reverts on reload — "not
         // saved" means not saved
         if (saved.editBackup) {
@@ -38,7 +42,7 @@
     try {
       localStorage.setItem(KEY, JSON.stringify({
         offers: state.offers, horizon: state.horizon, chartOfferId: state.chartOfferId,
-        editBackup: state.editBackup,
+        editBackup: state.editBackup, checklistDone: state.checklistDone,
       }))
     } catch (e) { /* storage blocked — session still works in memory */ }
   }

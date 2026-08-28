@@ -298,6 +298,9 @@
             computed.flags,
             { payoffHorizonMonths: state.horizon }
           )
+          for (const s of sections) for (const item of s.items) {
+            item.done = !!state.checklistDone[offer.id + "|" + item.text]
+          }
           return "=== " + offer.label + " ===\n\n" + checklistToText(sections)
         }).join("\n\n")
         navigator.clipboard.writeText(text).then(() => {
@@ -309,6 +312,30 @@
       case "print-checklist":
         window.print()
         break
+      case "toggle-check": {
+        const key = btn.dataset.key
+        if (!key) break
+        state.checklistDone[key] = !state.checklistDone[key]
+        if (!state.checklistDone[key]) delete state.checklistDone[key]
+        // In-place toggle — no re-render, so the page doesn't jump
+        const done = !!state.checklistDone[key]
+        btn.classList.toggle("checked", done)
+        btn.setAttribute("aria-checked", String(done))
+        const textSpan = btn.nextElementSibling
+        if (textSpan) textSpan.classList.toggle("check-done-text", done)
+        // Update the offer's n/total counter in place
+        const panel = btn.closest(".panel")
+        const counter = panel ? panel.querySelector(".tabular") : null
+        if (panel && counter) {
+          const total = panel.querySelectorAll(".check-btn").length
+          const ticked = panel.querySelectorAll(".check-btn.checked").length
+          counter.textContent = ticked + " / " + total + " DONE"
+          counter.classList.toggle("text-good", ticked === total)
+          counter.classList.toggle("text-ink-faint", ticked !== total)
+        }
+        schedulePersist()
+        break
+      }
     }
   }
 

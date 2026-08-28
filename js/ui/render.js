@@ -675,17 +675,26 @@
         flags,
         { payoffHorizonMonths: state.horizon }
       )
+      const allItems = sections.flatMap((s) => s.items)
+      const doneCount = allItems.filter((item) => state.checklistDone[offer.id + "|" + item.text]).length
       return `
       <div class="panel p-5">
-        <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">${esc(offer.label).toUpperCase()}</p>
+        <div class="flex items-baseline justify-between gap-4">
+          <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">${esc(offer.label).toUpperCase()}</p>
+          <p class="font-mono text-[0.6875rem] tabular ${doneCount === allItems.length ? "text-good" : "text-ink-faint"}">${doneCount} / ${allItems.length} DONE</p>
+        </div>
         ${sections.map((s) => `
           <h3 class="mt-4 border-b border-hairline pb-1.5 text-[0.9375rem] font-extrabold tracking-tight">${esc(s.title)}</h3>
           <ul class="mt-2 grid gap-2">
-            ${s.items.map((item) => `
+            ${s.items.map((item) => {
+              const key = offer.id + "|" + item.text
+              const done = !!state.checklistDone[key]
+              return `
               <li class="flex items-start gap-2.5 text-[0.875rem] leading-relaxed ${item.critical ? "font-semibold" : "text-ink-soft"}">
-                <span class="mt-0.5 inline-block h-4 w-4 flex-shrink-0 border border-ink-faint" aria-hidden="true"></span>
-                <span>${item.critical ? `<span class="font-mono text-[0.625rem] tracking-widest text-bad">CRITICAL · </span>` : ""}${esc(item.text)}</span>
-              </li>`).join("")}
+                <button type="button" class="check-btn ${done ? "checked" : ""}" data-action="toggle-check" data-key="${esc(key)}" role="checkbox" aria-checked="${done}" aria-label="Mark done">✓</button>
+                <span class="${done ? "check-done-text" : ""}">${item.critical ? `<span class="font-mono text-[0.625rem] tracking-widest text-bad">CRITICAL · </span>` : ""}${esc(item.text)}</span>
+              </li>`
+            }).join("")}
           </ul>`).join("")}
       </div>`
     }).join("")

@@ -180,6 +180,30 @@ details.faq summary::-webkit-details-marker { display: none; }
 details.faq summary .faq-mark::before { content: "+"; }
 details.faq[open] summary .faq-mark::before { content: "−"; }
 
+/* Checklist tick boxes — real buttons. Checked state uses an ink ✓ on a
+   transparent box so it survives print (backgrounds usually don't). */
+.check-btn {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ink-faint);
+  border-radius: 2px;
+  background: var(--paper-raised);
+  color: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.check-btn:hover { border-color: var(--ink); }
+.check-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.check-btn.checked { border-color: var(--ink); color: var(--ink); }
+.check-done-text { text-decoration: line-through; opacity: 0.55; }
+
 /* In-app modal — plain CSS, deliberately NOT Tailwind-CDN classes: the CDN
    generates utilities asynchronously, so a first-ever modal would render
    unpositioned for a frame at the bottom of the page and the focus() call
