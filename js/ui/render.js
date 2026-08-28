@@ -66,7 +66,7 @@
           <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">OFFER ${String(index + 1).padStart(2, "0")}${offer.mode === "quick" ? " · QUICK" : ""}${offer.draft ? ` <span class="text-warn">· DRAFT — NOT SAVED</span>` : ""}</p>
           <h3 class="truncate text-lg font-extrabold tracking-tight">${esc(offer.label)}</h3>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2">
           ${best && !offer.draft ? `<div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">OTD</p>
             <p class="font-mono text-base font-semibold tabular">${fmt(best.waterfall.outTheDoor)}</p>
@@ -341,7 +341,7 @@
         ? line(`Rebates <span class="text-ink-faint">(given up in this option)</span>`, `<span class="text-ink-faint">—</span>`)
         : ""
     return `
-      <div class="panel panel-strong bg-paper p-4 sm:p-5">
+      <div class="panel panel-strong min-w-0 bg-paper p-4 sm:p-5">
         <div class="mb-3 flex items-baseline justify-between gap-4 border-b-2 border-ink pb-2">
           <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">${esc(label).toUpperCase()}</p>
           <p class="font-mono text-[0.6875rem] tracking-widest text-ink-faint">OTD <span class="text-sm font-semibold text-ink">${fmt(w.outTheDoor)}</span></p>

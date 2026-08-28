@@ -57,6 +57,19 @@
     document.addEventListener("click", onClick)
     document.addEventListener("input", onInput)
     document.addEventListener("change", onChange)
+    // Numeric fields: focusing a 0 clears it (typing starts fresh); focusing
+    // a real value selects it all so typing replaces instead of appending
+    document.addEventListener("focusin", (e) => {
+      const el = e.target
+      if (!(el instanceof HTMLInputElement) || !el.dataset.path) return
+      const numeric = ["money", "money-null", "pct", "apr", "int", "int-null"]
+      if (!numeric.includes(el.dataset.type || "")) return
+      if (parseMoney(el.value) === 0) {
+        el.value = ""
+      } else {
+        requestAnimationFrame(() => el.select())
+      }
+    })
   }
 
   function syncHorizonControl() {
