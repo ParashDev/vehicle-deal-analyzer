@@ -85,9 +85,26 @@
     }
   }
 
+  // An offer with NO ways to pay still ranks — on a cash basis: 0% interest,
+  // all non-captive rebates applied, total cost = what leaves your pocket for
+  // the vehicle itself. Without this, a saved worksheet whose financing was
+  // never entered silently vanished from every comparison.
+  function effectiveScenarios(offer, payoffHorizonMonths) {
+    if (offer.scenarios && offer.scenarios.length) return offer.scenarios
+    return [{
+      id: "cash-basis",
+      label: "Cash basis (no financing entered)",
+      apr: 0,
+      termMonths: Math.max(1, payoffHorizonMonths || 1),
+      rebatesApplied: (offer.rebates || []).map((r) => r.id),
+      bonusCash: 0,
+      usesCaptiveFinancing: false,
+    }]
+  }
+
   function compareAll(offers, payoffHorizonMonths) {
     const results = offers.flatMap((offer) =>
-      (offer.scenarios || []).map((s) => evaluateScenario(offer, s, payoffHorizonMonths))
+      effectiveScenarios(offer, payoffHorizonMonths).map((s) => evaluateScenario(offer, s, payoffHorizonMonths))
     )
     results.sort((a, b) => a.totalCost - b.totalCost)
     return results
@@ -137,5 +154,5 @@
     return { winner, loser, gap, breakevenMonth: cross, isCloseCall: gap < 200, text }
   }
 
-  Object.assign(CDA, { validateScenarioRebates, evaluateScenario, compareAll, costCurve, breakevenMonth, verdict })
+  Object.assign(CDA, { validateScenarioRebates, evaluateScenario, effectiveScenarios, compareAll, costCurve, breakevenMonth, verdict })
 })(window.CDA = window.CDA || {})

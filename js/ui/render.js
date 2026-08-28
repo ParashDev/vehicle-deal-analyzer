@@ -5,7 +5,7 @@
 
 ;(function (CDA) {
   const { state, fmt, fmt0, fmtPct, esc, STATE_TAX_RULES, getStateRule,
-    computeWaterfall, evaluateScenario, compareAll, breakevenMonth, verdict, costCurve,
+    computeWaterfall, evaluateScenario, effectiveScenarios, compareAll, breakevenMonth, verdict, costCurve,
     detectFlags, scoreDeal, generateChecklist, crossoverChart } = CDA
 
   const $ = (sel) => document.querySelector(sel)
@@ -20,7 +20,7 @@
 
   // ── shared computation for one offer ──────────────────────────
   function offerComputed(offer) {
-    const results = offer.scenarios.map((s) => evaluateScenario(offer, s, state.horizon))
+    const results = effectiveScenarios(offer, state.horizon).map((s) => evaluateScenario(offer, s, state.horizon))
     results.sort((a, b) => a.totalCost - b.totalCost)
     const best = results[0]
     const flags = detectFlags(offer, best ? best.waterfall.computedTax.totalTax : 0)
@@ -545,10 +545,9 @@
   }
 
   function chartFocusOffer() {
-    // ANY saved offer with at least one way to pay can be charted — a single
-    // way still draws its cost line; requiring 2+ made the picker vanish when
-    // only one offer had multiple ways
-    const eligible = savedOffers().filter((o) => o.scenarios.length >= 1)
+    // EVERY saved offer can be charted — no ways to pay entered means a flat
+    // cash-basis line, one way means one curve, several mean the crossover
+    const eligible = savedOffers()
     if (!eligible.length) return null
     return eligible.find((o) => o.id === state.chartOfferId) || eligible[0]
   }
@@ -556,8 +555,9 @@
   function renderChart() {
     const offer = chartFocusOffer()
     if (!offer) return
-    const eligible = savedOffers().filter((o) => o.scenarios.length >= 1)
+    const eligible = savedOffers()
 
+    const wayTag = (o) => o.scenarios.length === 0 ? "CASH BASIS" : o.scenarios.length === 1 ? "1 WAY" : o.scenarios.length + " WAYS"
     const picker = eligible.length > 1 ? `
       <div class="mb-5">
         <p class="section-code mb-2">Chart shows</p>
@@ -565,7 +565,7 @@
           ${eligible.map((o) => `
             <button class="btn ${o.id === offer.id ? "" : "btn-ghost"} justify-between text-[0.75rem] sm:justify-center" data-action="focus-chart" data-id="${o.id}" aria-pressed="${o.id === offer.id}">
               <span class="truncate">${esc(o.label)}</span>
-              <span class="ml-2 shrink-0 font-mono text-[0.625rem] tracking-widest ${o.id === offer.id ? "opacity-60" : "text-ink-faint"}">${o.scenarios.length} ${o.scenarios.length === 1 ? "WAY" : "WAYS"}</span>
+              <span class="ml-2 shrink-0 font-mono text-[0.625rem] tracking-widest ${o.id === offer.id ? "opacity-60" : "text-ink-faint"}">${wayTag(o)}</span>
             </button>`).join("")}
         </div>
       </div>` : ""
@@ -587,17 +587,23 @@
         <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(v.text)}</p>
         ${v.breakevenMonth ? `<p class="mt-2 font-mono text-[0.75rem] text-ink-soft">ANSWER FLIPS AT MONTH ${v.breakevenMonth} · YOU SAID ${state.horizon} · DIFFERENCE ${fmt0(v.gap)}</p>` : ""}
       </div>`
-    } else {
+    } else if (offer.scenarios.length === 1) {
       verdictHtml = `
       <div class="panel border-dashed p-5">
         <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">ONE WAY TO PAY ENTERED</p>
         <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The line below is this offer's total cost by payoff month. Add the dealer's other option (the rebate path or the 0% path) in this offer's editor and the chart will show exactly where the answer flips.</p>
       </div>`
+    } else {
+      verdictHtml = `
+      <div class="panel border-dashed p-5">
+        <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">NO FINANCING ENTERED — CASH BASIS</p>
+        <p class="mt-2 text-[0.9375rem] leading-relaxed text-ink-soft">The flat line below is this offer's out-the-door cost with all rebates applied and zero interest — what it costs if you pay in full. It still ranks in the comparison on that basis. Enter the dealer's financing choices in this offer's editor for the real picture.</p>
+      </div>`
     }
 
     $("#verdict").innerHTML = picker + verdictHtml
 
-    const curves = offer.scenarios.map((s) => ({ label: s.label, points: costCurve(offer, s) }))
+    const curves = effectiveScenarios(offer, state.horizon).map((s) => ({ label: s.label, points: costCurve(offer, s) }))
     $("#chart").innerHTML = crossoverChart(curves, state.horizon, be)
   }
 
