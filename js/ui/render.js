@@ -37,11 +37,22 @@
       const sameVehicle = msrps.length >= 2 && (Math.max.apply(null, msrps) - Math.min.apply(null, msrps)) / Math.min.apply(null, msrps) <= 0.02
       const myNet = best.totalCost - includedValueOf(offer)
       const myRatio = myNet / offer.msrp
-      const bestRatio = Math.min.apply(null, peers.filter((o) => o.msrp > 0).map((o) => netCostOf(o) / o.msrp))
-      const gapRatio = myRatio - bestRatio
+      // Exactly ONE offer is "your best": strict minimum ratio, first wins
+      // exact ties — near-ties say so instead of both claiming the crown
+      const ranked = peers.filter((o) => o.msrp > 0).map((o) => ({ id: o.id, ratio: netCostOf(o) / o.msrp }))
+      const bestEntry = ranked.reduce((m, x) => (x.ratio < m.ratio - 1e-9 ? x : m), ranked[0])
+      const bestRatio = bestEntry.ratio
+      const gapRatio = Math.max(0, myRatio - bestRatio)
+      const isBest = bestEntry.id === offer.id
+      const bestNet = Math.min.apply(null, peers.map(netCostOf))
+      const gapDollars = Math.round(myNet - bestNet)
       let detail, improve
-      if (gapRatio <= 0.0005) {
+      if (isBest) {
         detail = "This is your best offer — the others are graded against it."
+      } else if (gapRatio < 0.0015) {
+        detail = sameVehicle
+          ? "Within $" + Math.max(gapDollars, 1).toLocaleString() + " of your best offer — effectively tied. Decide on the non-money stuff."
+          : "Within " + (gapRatio * 100).toFixed(2) + " points of sticker of your best offer — effectively tied."
       } else if (sameVehicle) {
         const bestNet = Math.min.apply(null, peers.map(netCostOf))
         const gapDollars = Math.round(myNet - bestNet)
