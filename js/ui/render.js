@@ -422,7 +422,7 @@
         <tr><td>APR / term</td>${results.map((r) => `<td>${r.apr}% · ${r.termMonths} mo</td>`).join("")}</tr>
         <tr><td>Monthly payment</td>${results.map((r) => `<td>${fmt(r.scheduledPayment)}</td>`).join("")}</tr>
         <tr><td>Interest paid by month ${state.horizon}</td>${results.map((r) => `<td>${fmt(r.interestPaid)}</td>`).join("")}</tr>
-        <tr><td>Balance cleared at month ${state.horizon}</td>${results.map((r) => `<td>${r.balanceAtHorizon ? fmt(r.balanceAtHorizon) : "—"}</td>`).join("")}</tr>
+        ${results.some((r) => r.balanceAtHorizon > 0) ? `<tr><td>Lump sum to finish paying it off at month ${state.horizon}</td>${results.map((r) => `<td>${r.balanceAtHorizon ? fmt(r.balanceAtHorizon) : "—"}</td>`).join("")}</tr>` : ""}
       </tbody>
     </table>`
   }
