@@ -12,9 +12,9 @@
   function modal(opts) {
     return new Promise((resolve) => {
       const overlay = document.createElement("div")
-      overlay.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      overlay.className = "modal-overlay"
       overlay.innerHTML = `
-        <div class="panel panel-strong w-full max-w-sm bg-paper p-5" role="dialog" aria-modal="true">
+        <div class="modal-box" role="dialog" aria-modal="true">
           <p class="font-mono text-[0.625rem] tracking-[0.14em] ${opts.danger ? "text-bad" : "text-ink-faint"}">${opts.title}</p>
           <p class="mt-2 text-[0.9375rem] leading-relaxed">${opts.message}</p>
           <div class="mt-5 flex justify-end gap-2">
@@ -31,7 +31,7 @@
       })
       document.addEventListener("keydown", onKey)
       document.body.appendChild(overlay)
-      overlay.querySelector("[data-modal='ok']").focus()
+      overlay.querySelector("[data-modal='ok']").focus({ preventScroll: true })
     })
   }
   const confirmModal = (title, message, confirmLabel) =>

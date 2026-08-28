@@ -180,6 +180,29 @@ details.faq summary::-webkit-details-marker { display: none; }
 details.faq summary .faq-mark::before { content: "+"; }
 details.faq[open] summary .faq-mark::before { content: "−"; }
 
+/* In-app modal — plain CSS, deliberately NOT Tailwind-CDN classes: the CDN
+   generates utilities asynchronously, so a first-ever modal would render
+   unpositioned for a frame at the bottom of the page and the focus() call
+   would scroll the page down to it. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+}
+.modal-box {
+  width: 100%;
+  max-width: 24rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 3px;
+  padding: 1.25rem;
+}
+
 /* Skip link */
 .skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; }
 .skip-link:focus { left: 0.5rem; top: 0.5rem; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; }
