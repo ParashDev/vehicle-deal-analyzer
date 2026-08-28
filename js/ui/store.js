@@ -10,6 +10,9 @@
     expandedOfferId: null,
     chartOfferId: null,
     benchmark: 7,
+    // Snapshot of a saved offer taken when its editor opens — Save commits,
+    // Cancel (or a reload) restores it. {offerId, data} or null.
+    editBackup: null,
   }
 
   function load() {
@@ -21,6 +24,12 @@
         state.offers = saved.offers
         state.horizon = saved.horizon || 36
         state.chartOfferId = saved.chartOfferId || null
+        // An edit session that never got saved reverts on reload — "not
+        // saved" means not saved
+        if (saved.editBackup) {
+          const idx = state.offers.findIndex((o) => o.id === saved.editBackup.offerId)
+          if (idx >= 0) state.offers[idx] = saved.editBackup.data
+        }
       }
     } catch (e) { /* corrupted storage — start clean */ }
   }
@@ -29,6 +38,7 @@
     try {
       localStorage.setItem(KEY, JSON.stringify({
         offers: state.offers, horizon: state.horizon, chartOfferId: state.chartOfferId,
+        editBackup: state.editBackup,
       }))
     } catch (e) { /* storage blocked — session still works in memory */ }
   }

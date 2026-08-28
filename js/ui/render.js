@@ -63,11 +63,11 @@
     <article class="panel ${open ? "panel-strong" : ""}">
       <header class="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3 sm:px-5">
         <div class="min-w-0">
-          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">OFFER ${String(index + 1).padStart(2, "0")}${offer.mode === "quick" ? " · QUICK" : ""}</p>
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">OFFER ${String(index + 1).padStart(2, "0")}${offer.mode === "quick" ? " · QUICK" : ""}${offer.draft ? ` <span class="text-warn">· DRAFT — NOT SAVED</span>` : ""}</p>
           <h3 class="truncate text-lg font-extrabold tracking-tight">${esc(offer.label)}</h3>
         </div>
         <div class="flex items-center gap-4">
-          ${best ? `<div class="text-right">
+          ${best && !offer.draft ? `<div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">OTD</p>
             <p class="font-mono text-base font-semibold tabular">${fmt(best.waterfall.outTheDoor)}</p>
           </div>
@@ -84,14 +84,35 @@
             <p class="font-mono text-base font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}</p>
           </div>` : ""}
           <div class="flex gap-2">
-            <button class="btn btn-ghost text-[0.75rem]" data-action="toggle-offer" data-id="${offer.id}">${open ? "Close" : "Edit"}</button>
-            <button class="btn btn-danger text-[0.75rem]" data-action="delete-offer" data-id="${offer.id}">Delete</button>
+            ${open
+              ? offer.draft
+                ? `<button class="btn btn-ghost text-[0.75rem]" data-action="toggle-offer" data-id="${offer.id}">Close</button>`
+                : `<button class="btn btn-ghost text-[0.75rem]" data-action="cancel-edit" data-id="${offer.id}">Cancel</button>`
+              : `<button class="btn btn-ghost text-[0.75rem]" data-action="toggle-offer" data-id="${offer.id}">Edit</button>`}
+            ${offer.draft
+              ? `<button class="btn btn-danger text-[0.75rem]" data-action="discard-offer" data-id="${offer.id}">Discard</button>`
+              : `<button class="btn btn-danger text-[0.75rem]" data-action="delete-offer" data-id="${offer.id}">Delete</button>`}
           </div>
         </div>
       </header>
       ${open ? offerEditor(offer) : ""}
-      ${offer.mode === "detailed" ? waterfallDetail(offer) : ""}
+      ${offer.mode === "detailed" && !offer.draft ? waterfallDetail(offer) : ""}
     </article>`
+  }
+
+  // Save / Cancel bar at the bottom of every editor — nothing commits
+  // without it
+  function editorFooter(offer) {
+    return `
+    <div class="flex flex-wrap items-center gap-2 border-t border-hairline pt-4">
+      ${offer.draft
+        ? `<button class="btn" data-action="save-offer" data-id="${offer.id}">Save offer</button>
+           <button class="btn btn-danger" data-action="discard-offer" data-id="${offer.id}">Discard</button>
+           <p class="w-full text-[0.6875rem] text-ink-faint sm:w-auto">This offer joins the comparison when you save it.</p>`
+        : `<button class="btn" data-action="save-offer" data-id="${offer.id}">Save changes</button>
+           <button class="btn btn-ghost" data-action="cancel-edit" data-id="${offer.id}">Cancel</button>
+           <p class="w-full text-[0.6875rem] text-ink-faint sm:w-auto">Live preview below — Cancel reverts everything since you opened this.</p>`}
+    </div>`
   }
 
   function moneyField(num, label, path, value, placeholder) {
@@ -140,6 +161,7 @@
 
         ${scenarioEditor(offer, p)}
         <p class="border-l-2 border-warn bg-warn-wash px-3 py-2 text-[0.8125rem] leading-relaxed text-warn">Quick compare only checks bottom-line quotes. To enter <strong>dealer discounts, rebates (Ford/Toyota cash), add-ons, and fees</strong>, use the <strong>Full worksheet</strong> button instead — that's where the real analysis happens.</p>
+        ${editorFooter(offer)}
       </div>`
     }
 
@@ -240,6 +262,7 @@
       </section>
 
       ${scenarioEditor(offer, p)}
+      ${editorFooter(offer)}
     </div>`
   }
 
@@ -399,8 +422,12 @@
   }
 
   // ── Derived sections ──────────────────────────────────────────
+  // Drafts are invisible here: only SAVED offers rank, chart, flag, score,
+  // or generate checklists
+  const savedOffers = () => state.offers.filter((o) => !o.draft)
+
   function renderDerived() {
-    const results = compareAll(state.offers, state.horizon)
+    const results = compareAll(savedOffers(), state.horizon)
     const has = results.length > 0
 
     $("#comparison-section").classList.toggle("hidden", results.length < 2)
@@ -518,7 +545,7 @@
   }
 
   function chartFocusOffer() {
-    const eligible = state.offers.filter((o) => o.scenarios.length >= 2)
+    const eligible = savedOffers().filter((o) => o.scenarios.length >= 2)
     if (!eligible.length) return null
     return eligible.find((o) => o.id === state.chartOfferId) || eligible[0]
   }
@@ -526,7 +553,7 @@
   function renderChart() {
     const offer = chartFocusOffer()
     if (!offer) return
-    const eligible = state.offers.filter((o) => o.scenarios.length >= 2)
+    const eligible = savedOffers().filter((o) => o.scenarios.length >= 2)
 
     const a = offer.scenarios[0], b = offer.scenarios[1]
     const v = verdict(offer, a, b, Math.min(state.horizon, Math.max(a.termMonths, b.termMonths)))
@@ -545,7 +572,7 @@
   }
 
   function renderFlags() {
-    const blocks = state.offers.map((offer) => {
+    const blocks = savedOffers().map((offer) => {
       const { flags } = offerComputed(offer)
       if (!flags.length) return `
         <div class="panel p-4">
@@ -570,7 +597,7 @@
   }
 
   function renderScores() {
-    $("#scores").innerHTML = state.offers.map((offer) => {
+    $("#scores").innerHTML = savedOffers().map((offer) => {
       const { score } = offerComputed(offer)
       return `
       <div class="panel p-5">
@@ -605,7 +632,7 @@
   }
 
   function renderChecklist() {
-    $("#print-checklist").innerHTML = state.offers.map((offer) => {
+    $("#print-checklist").innerHTML = savedOffers().map((offer) => {
       const { flags, best } = offerComputed(offer)
       const sections = generateChecklist(
         Object.assign({}, offer, { otdForChecklist: best ? best.waterfall.outTheDoor : null }),

@@ -5,8 +5,38 @@
 ;(function (CDA) {
   const { state, load, persist, detailedOffer, quickOffer, demoOffer, setPath, getPath,
     exportJson, importJson, renderAll, renderOffers, renderDerived, offerComputed,
-    parseMoney, parsePercent, parseApr, parseInt10, uid, getStateRule,
+    parseMoney, parsePercent, parseApr, parseInt10, uid, getStateRule, esc,
     generateChecklist, checklistToText } = CDA
+
+  // ── In-app modal — replaces window.confirm/alert ──────────────
+  function modal(opts) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement("div")
+      overlay.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      overlay.innerHTML = `
+        <div class="panel panel-strong w-full max-w-sm bg-paper p-5" role="dialog" aria-modal="true">
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] ${opts.danger ? "text-bad" : "text-ink-faint"}">${opts.title}</p>
+          <p class="mt-2 text-[0.9375rem] leading-relaxed">${opts.message}</p>
+          <div class="mt-5 flex justify-end gap-2">
+            ${opts.cancelLabel ? `<button class="btn btn-ghost" data-modal="cancel">${opts.cancelLabel}</button>` : ""}
+            <button class="btn ${opts.danger ? "btn-danger" : ""}" data-modal="ok">${opts.confirmLabel || "OK"}</button>
+          </div>
+        </div>`
+      const done = (val) => { overlay.remove(); document.removeEventListener("keydown", onKey); resolve(val) }
+      const onKey = (e) => { if (e.key === "Escape") done(false) }
+      overlay.addEventListener("click", (e) => {
+        const btn2 = e.target instanceof Element ? e.target.closest("[data-modal]") : null
+        if (btn2) { done(btn2.dataset.modal === "ok"); return }
+        if (e.target === overlay) done(false)
+      })
+      document.addEventListener("keydown", onKey)
+      document.body.appendChild(overlay)
+      overlay.querySelector("[data-modal='ok']").focus()
+    })
+  }
+  const confirmModal = (title, message, confirmLabel) =>
+    modal({ title, message, confirmLabel: confirmLabel || "Yes", cancelLabel: "Cancel", danger: true })
+  const notice = (title, message) => modal({ title, message, confirmLabel: "OK" })
 
   const offersHost = document.querySelector("#offers")
   if (offersHost) boot()
@@ -75,7 +105,10 @@
 
     switch (action) {
       case "add-quick": {
+        // New offers start as DRAFTS: excluded from every ranking until saved,
+        // so half-typed zeros never produce a fake verdict
         const offer = quickOffer({ label: "Offer " + (state.offers.length + 1), msrp: 0, otd: 0, down: 0, apr: 6.99, term: 60 })
+        offer.draft = true
         state.offers.push(offer)
         state.expandedOfferId = offer.id
         structuralRender()
@@ -85,10 +118,39 @@
       case "add-detailed": {
         const offer = detailedOffer()
         offer.label = "Offer " + (state.offers.length + 1)
+        offer.draft = true
         state.offers.push(offer)
         state.expandedOfferId = offer.id
         structuralRender()
         focusFirstField()
+        break
+      }
+      case "save-offer": {
+        const offer = state.offers.find((o) => o.id === id)
+        if (!offer) break
+        if (!offer.msrp || offer.msrp <= 0) {
+          notice("CAN'T SAVE YET", "Enter the Total MSRP from the window sticker first — everything is computed from it.")
+          break
+        }
+        if (offer.mode === "quick" && offer.msrp - offer.dealerDiscount + offer.marketAdjustment <= 0) {
+          notice("CAN'T SAVE YET", "Enter the out-the-door price the dealer quoted first.")
+          break
+        }
+        offer.draft = false
+        if (state.editBackup && state.editBackup.offerId === offer.id) state.editBackup = null
+        state.expandedOfferId = null
+        structuralRender()
+        break
+      }
+      case "discard-offer": {
+        const offer = state.offers.find((o) => o.id === id)
+        if (!offer) break
+        confirmModal("DISCARD DRAFT", 'Throw away "' + esc(offer.label) + '" without saving?', "Discard").then((ok) => {
+          if (!ok) return
+          state.offers = state.offers.filter((o) => o.id !== id)
+          if (state.expandedOfferId === id) state.expandedOfferId = null
+          structuralRender()
+        })
         break
       }
       case "load-demo": {
@@ -102,17 +164,52 @@
         structuralRender()
         break
       }
-      case "toggle-offer":
-        state.expandedOfferId = state.expandedOfferId === id ? null : id || null
+      case "toggle-offer": {
+        const target = state.offers.find((o) => o.id === id)
+        if (!target) break
+        if (state.expandedOfferId === id) {
+          // Collapsing a DRAFT keeps it as a draft; a saved offer's editor
+          // has no plain "close" — its buttons are Save changes / Cancel
+          state.expandedOfferId = null
+        } else {
+          // Switching away from a saved-offer edit with unsaved changes?
+          const current = state.offers.find((o) => o.id === state.expandedOfferId)
+          if (current && !current.draft && hasUnsavedEdit(current)) {
+            confirmModal("UNSAVED CHANGES", 'Discard unsaved changes to "' + esc(current.label) + '"?', "Discard changes").then((ok) => {
+              if (!ok) return
+              restoreEditBackup()
+              state.expandedOfferId = id
+              if (!target.draft) beginEditBackup(target)
+              structuralRender()
+            })
+            break
+          }
+          if (current && !current.draft) {
+            state.editBackup = null
+          }
+          state.expandedOfferId = id
+          if (!target.draft) beginEditBackup(target)
+        }
         structuralRender()
         break
+      }
+      case "cancel-edit": {
+        restoreEditBackup()
+        state.expandedOfferId = null
+        structuralRender()
+        break
+      }
       case "delete-offer": {
         const offer = state.offers.find((o) => o.id === id)
-        if (offer && confirm('Delete "' + offer.label + '"? This can\'t be undone.')) {
+        if (!offer) break
+        confirmModal("DELETE OFFER", 'Delete "' + esc(offer.label) + '"? This can\'t be undone.', "Delete").then((ok) => {
+          if (!ok) return
           state.offers = state.offers.filter((o) => o.id !== id)
           if (state.chartOfferId === id) state.chartOfferId = null
+          if (state.editBackup && state.editBackup.offerId === id) state.editBackup = null
+          if (state.expandedOfferId === id) state.expandedOfferId = null
           structuralRender()
-        }
+        })
         break
       }
       case "add-rebate":
@@ -171,12 +268,14 @@
         break
       }
       case "clear-all":
-        if (confirm("Clear every offer from this device?")) {
+        confirmModal("CLEAR EVERYTHING", "Remove every offer from this device? Export a JSON backup first if you might want them back.", "Clear all").then((ok) => {
+          if (!ok) return
           state.offers = []
           state.expandedOfferId = null
           state.chartOfferId = null
+          state.editBackup = null
           structuralRender()
-        }
+        })
         break
       case "copy-checklist": {
         const text = state.offers.map((offer) => {
@@ -198,6 +297,25 @@
         window.print()
         break
     }
+  }
+
+  // ── Edit sessions on saved offers: snapshot on open, commit on Save,
+  //    restore on Cancel ─────────────────────────────────────────
+  function beginEditBackup(offer) {
+    state.editBackup = { offerId: offer.id, data: JSON.parse(JSON.stringify(offer)) }
+  }
+
+  function restoreEditBackup() {
+    const b = state.editBackup
+    if (!b) return
+    const idx = state.offers.findIndex((o) => o.id === b.offerId)
+    if (idx >= 0) state.offers[idx] = b.data
+    state.editBackup = null
+  }
+
+  function hasUnsavedEdit(offer) {
+    const b = state.editBackup
+    return !!b && b.offerId === offer.id && JSON.stringify(offer) !== JSON.stringify(b.data)
   }
 
   function withOffer(id, mutate) {
@@ -230,7 +348,7 @@
     if (el instanceof HTMLInputElement && el.dataset.action === "import-json" && el.files && el.files[0]) {
       el.files[0].text().then((raw) => {
         try { importJson(raw); structuralRender() }
-        catch (err) { alert("That file isn't a Vehicle Deal Analyzer export.") }
+        catch (err) { notice("IMPORT FAILED", "That file isn't a Vehicle Deal Analyzer export.") }
       })
       return
     }
