@@ -96,7 +96,10 @@
       rebates: [
         { id: rebateId, label: "Retail Bonus Cash", amount: 2000, requiresCaptiveFinancing: false, mutuallyExclusiveWith: [], conditional: false },
       ],
-      accessories: [],
+      // charged 0 = thrown in free: never changes the OTD, counts as value
+      accessories: [
+        { id: uid("acc"), label: "Spray-in bed liner (included)", charged: 0, retailValue: 450, isNegotiable: false, category: "legit" },
+      ],
       fees: [
         { id: uid("fee"), label: "Doc Fee", amount: 250, category: "doc", isTaxable: true },
         { id: uid("fee"), label: "Title", amount: 15, category: "government", isTaxable: false },

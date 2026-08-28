@@ -63,8 +63,10 @@
   function detectFlags(offer, computedTax) {
     const flags = []
 
+    // charged === 0 means the dealer threw it in — that's value, not junk,
+    // so free items never enter the junk scan
     const lineItems = [
-      ...offer.accessories.map((a) => ({ id: a.id, label: a.label, amount: a.charged })),
+      ...offer.accessories.filter((a) => a.charged > 0).map((a) => ({ id: a.id, label: a.label, amount: a.charged })),
       ...offer.fees.filter((f) => f.category !== "government").map((f) => ({ id: f.id, label: f.label, amount: f.amount })),
     ]
     for (const item of lineItems) {

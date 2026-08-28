@@ -10,6 +10,14 @@
 
   const $ = (sel) => document.querySelector(sel)
 
+  // Free dealer add-ons (charged 0): never move the OTD, count as value
+  const includedItemsOf = (offer) => offer.accessories.filter((a) => a.charged === 0 && a.retailValue > 0)
+  const includedValueOf = (offer) => includedItemsOf(offer).reduce((s, a) => s + a.retailValue, 0)
+  const includedNamesOf = (offer) => {
+    const names = includedItemsOf(offer).map((a) => a.label || "unnamed item")
+    return names.length > 3 ? names.slice(0, 3).join(", ") + "…" : names.join(", ")
+  }
+
   // ── shared computation for one offer ──────────────────────────
   function offerComputed(offer) {
     const results = offer.scenarios.map((s) => evaluateScenario(offer, s, state.horizon))
@@ -67,6 +75,10 @@
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">MONTHLY</p>
             <p class="font-mono text-base font-semibold tabular">${fmt(best.scheduledPayment)}</p>
           </div>
+          ${includedValueOf(offer) > 0 ? `<div class="text-right">
+            <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">+VALUE</p>
+            <p class="font-mono text-base font-semibold tabular text-good">${fmt0(includedValueOf(offer))}</p>
+          </div>` : ""}
           <div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">SCORE</p>
             <p class="font-mono text-base font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}</p>
@@ -106,6 +118,26 @@
           ${moneyField("03", "Out-the-door price quoted", `${p}.quickOtd`, offer.msrp - offer.dealerDiscount + offer.marketAdjustment)}
           ${moneyField("04", "Down payment", `${p}.financing.downPayment`, offer.financing.downPayment)}
         </div>
+
+        <div class="grid gap-2.5">
+          <div class="flex items-center justify-between gap-3">
+            <p class="section-code">Dealer add-ons included in that price</p>
+            <button class="btn btn-ghost text-[0.6875rem]" data-action="add-included" data-id="${offer.id}">+ Add an add-on</button>
+          </div>
+          <p class="text-[0.8125rem] text-ink-soft">
+            Bed liner, mats, tint — anything the dealer throws in. This never changes the OTD;
+            it counts as <strong class="text-ink">value</strong>, so two same-price offers rank
+            by what you actually get.
+          </p>
+          ${offer.accessories.length ? `<p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">WHAT IT IS · WHAT IT'S WORTH</p>` : ""}
+          ${offer.accessories.map((a, ai) => `
+            <div class="grid grid-cols-[1fr_7rem_2.5rem] items-center gap-2">
+              <input class="cell cell-text" data-path="${p}.accessories.${ai}.label" data-type="text" value="${esc(a.label)}" placeholder="Spray-in bed liner" />
+              <input class="cell" inputmode="decimal" data-path="${p}.accessories.${ai}.retailValue" data-type="money" value="${a.retailValue}" title="What it's worth" />
+              <button class="btn btn-danger !min-h-[36px] !px-2 text-[0.75rem]" data-action="remove-item" data-list="${p}.accessories" data-index="${ai}" aria-label="Remove add-on">×</button>
+            </div>`).join("")}
+        </div>
+
         ${scenarioEditor(offer, p)}
         <p class="border-l-2 border-warn bg-warn-wash px-3 py-2 text-[0.8125rem] leading-relaxed text-warn">Quick compare only checks bottom-line quotes. To enter <strong>dealer discounts, rebates (Ford/Toyota cash), add-ons, and fees</strong>, use the <strong>Full worksheet</strong> button instead — that's where the real analysis happens.</p>
       </div>`
@@ -320,6 +352,10 @@
           ${line("Government fees (title, registration…)", "+" + fmt(w.nonTaxableFees))}
           ${line("<strong>OUT THE DOOR</strong>", `<strong class="text-base">${fmt(w.outTheDoor)}</strong>`, "border-t-2 border-ink")}
         </table>
+        ${includedItemsOf(offer).length ? `
+        <p class="mt-3 border-t border-hairline pt-2 text-[0.6875rem] leading-relaxed text-ink-faint">
+          INCLUDED AT NO CHARGE: ${esc(includedNamesOf(offer))} — <span class="text-good">≈ ${fmt0(includedValueOf(offer))} of value</span> on top of this price. Get every item on a signed We Owe form.
+        </p>` : ""}
       </div>`
   }
 
@@ -395,6 +431,14 @@
         <tr class="row-headline"><td>Total cost @ ${state.horizon} mo</td>${results.map((r) => cell(r, "totalCost", fmt)).join("")}</tr>
         <tr><td>Out the door</td>${results.map((r) => `<td>${fmt(r.waterfall.outTheDoor)}</td>`).join("")}</tr>
         <tr><td>Rebates in this path</td>${results.map((r) => `<td>${r.rebateTotal ? "−" + fmt(r.rebateTotal) : "—"}</td>`).join("")}</tr>
+        ${(() => {
+          const byOffer = new Map(state.offers.map((o) => [o.id, includedValueOf(o)]))
+          const values = results.map((r) => byOffer.get(r.offerId) || 0)
+          if (!values.some((v) => v > 0)) return ""
+          const maxV = Math.max.apply(null, values)
+          const varies = values.some((v) => v !== maxV)
+          return `<tr><td>Extras included (value — higher is better)</td>${results.map((r, ri) => `<td class="${values[ri] > 0 && values[ri] === maxV && varies ? "win" : ""}">${values[ri] ? fmt0(values[ri]) : "—"}</td>`).join("")}</tr>`
+        })()}
         <tr><td>Amount financed</td>${results.map((r) => `<td>${fmt(r.amountFinanced)}</td>`).join("")}</tr>
         <tr><td>APR / term</td>${results.map((r) => `<td>${r.apr}% · ${r.termMonths} mo</td>`).join("")}</tr>
         <tr><td>Monthly payment</td>${results.map((r) => `<td>${fmt(r.scheduledPayment)}</td>`).join("")}</tr>
@@ -418,19 +462,58 @@
     if (bests.length < 2) { host.innerHTML = ""; return }
     const winner = bests[0], runnerUp = bests[1]
     const gap = Math.round(runnerUp.totalCost - winner.totalCost)
+
+    // Value on top of price: what each dealer throws in for free. Same price
+    // + a free bed liner beats same price without one.
+    const winnerOffer = state.offers.find((o) => o.id === winner.offerId)
+    const runnerOffer = state.offers.find((o) => o.id === runnerUp.offerId)
+    const wVal = winnerOffer ? includedValueOf(winnerOffer) : 0
+    const rVal = runnerOffer ? includedValueOf(runnerOffer) : 0
+    const effAdv = gap + wVal - rVal // winner's advantage counting extras
+    const extrasStrip = (wVal || rVal)
+      ? `<p class="mt-2 font-mono text-[0.75rem] text-ink-soft">EXTRAS INCLUDED · ${esc(winner.offerLabel).toUpperCase()} ${fmt0(wVal)} · ${esc(runnerUp.offerLabel).toUpperCase()} ${fmt0(rVal)}</p>`
+      : ""
+
     if (gap < 200) {
+      // Same money — does one of them simply give you more?
+      if (Math.abs(wVal - rVal) >= 100) {
+        const valWinner = wVal > rVal ? winner : runnerUp
+        const valOffer = wVal > rVal ? winnerOffer : runnerOffer
+        const valDiff = Math.abs(wVal - rVal)
+        host.innerHTML = `
+          <div class="verdict p-5">
+            <p class="font-mono text-[0.625rem] tracking-[0.14em] text-good">BEST DEAL — SAME MONEY, MORE EQUIPMENT</p>
+            <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(valWinner.offerLabel)} and the other offer land within ${fmt0(gap)} on price — but ${esc(valWinner.offerLabel)} includes ${fmt0(valDiff)} more in extras${valOffer && includedNamesOf(valOffer) ? " (" + esc(includedNamesOf(valOffer)) + ")" : ""}. Same money, more vehicle — take the better-equipped one.</p>
+            ${extrasStrip}
+          </div>`
+        return
+      }
       host.innerHTML = `
         <div class="verdict verdict-close p-5">
           <p class="font-mono text-[0.625rem] tracking-[0.14em] text-warn">DEALER VS DEALER — TOO CLOSE TO CALL</p>
           <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(winner.offerLabel)} and ${esc(runnerUp.offerLabel)} land within ${fmt0(gap)} of each other by your payoff date. Pick on the non-money stuff: which dealer puts it in writing, has the actual unit, and doesn't play games at the desk.</p>
+          ${extrasStrip}
         </div>`
       return
+    }
+
+    // Clear price winner — but check whether the loser's extras change the story
+    let valueSentence = ""
+    if (wVal || rVal) {
+      if (effAdv >= 200) {
+        valueSentence = ` Counting the extras, ${esc(winner.offerLabel)} stays about ${fmt0(effAdv)} ahead.`
+      } else if (effAdv > -200) {
+        valueSentence = ` But counting ${esc(runnerUp.offerLabel)}'s ${fmt0(rVal)} in included extras, it's effectively even — decide on the non-money stuff.`
+      } else {
+        valueSentence = ` But ${esc(runnerUp.offerLabel)} includes ${fmt0(rVal)} of extras${runnerOffer && includedNamesOf(runnerOffer) ? " (" + esc(includedNamesOf(runnerOffer)) + ")" : ""} — counting them, it's effectively about ${fmt0(-effAdv)} ahead. Same class of money, more vehicle.`
+      }
     }
     host.innerHTML = `
       <div class="verdict p-5">
         <p class="font-mono text-[0.625rem] tracking-[0.14em] text-good">BEST DEAL</p>
-        <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(winner.offerLabel)} wins — ${fmt0(gap)} less than ${esc(runnerUp.offerLabel)} by your payoff date, paying via &ldquo;${esc(winner.scenarioLabel)}&rdquo;.</p>
+        <p class="mt-2 text-[1.0625rem] font-semibold leading-relaxed">${esc(winner.offerLabel)} wins — ${fmt0(gap)} less than ${esc(runnerUp.offerLabel)} by your payoff date, paying via &ldquo;${esc(winner.scenarioLabel)}&rdquo;.${valueSentence}</p>
         <p class="mt-2 font-mono text-[0.75rem] text-ink-soft">${esc(winner.offerLabel).toUpperCase()} TOTAL ${fmt0(winner.totalCost)} · ${esc(runnerUp.offerLabel).toUpperCase()} TOTAL ${fmt0(runnerUp.totalCost)}</p>
+        ${extrasStrip}
       </div>`
   }
 

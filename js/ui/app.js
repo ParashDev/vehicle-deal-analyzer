@@ -121,6 +121,11 @@
       case "add-accessory":
         withOffer(id, (o) => o.accessories.push({ id: uid("acc"), label: "", charged: 0, retailValue: 0, isNegotiable: true, category: "overpriced" }))
         break
+      case "add-included":
+        // Quick mode: dealer add-on included in the quoted OTD — charged 0
+        // so the price never moves; retailValue is what it's worth to you
+        withOffer(id, (o) => o.accessories.push({ id: uid("acc"), label: "", charged: 0, retailValue: 0, isNegotiable: false, category: "legit" }))
+        break
       case "add-fee":
         withOffer(id, (o) => o.fees.push({ id: uid("fee"), label: "", amount: 0, category: "dealer-junk", isTaxable: true }))
         break
