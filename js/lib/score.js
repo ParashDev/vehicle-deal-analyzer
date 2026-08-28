@@ -14,24 +14,58 @@
     opts = opts || {}
     const benchmark = opts.aprBenchmark != null ? opts.aprBenchmark : 7
 
-    // 1) Bottom line vs sticker (45%). The quote includes tax & fees, so
-    //    ~100% of MSRP is TYPICAL, not bad; under ~95% is strong. Full marks
-    //    at 95%, zero at 110%.
+    // 1) Vs your best offer (35%) — RELATIVE: total cost at your payoff date,
+    //    with included extras counted, against the best quote you entered.
+    //    $2,500 behind = zero. This is what makes scores differ between your
+    //    offers instead of everyone acing an absolute band.
+    let relScore = 1
+    let relDetail
+    if (opts.relative) {
+      const gap = Math.max(0, Math.round(opts.relative.gap))
+      relScore = clamp01(1 - gap / 2500)
+      relDetail = gap <= 0
+        ? "This is your best offer — the others are graded against it."
+        : "$" + gap.toLocaleString() + " more total cost than your best offer by your payoff date, with included extras counted."
+    } else {
+      relDetail = "Only one offer entered — add another dealer's quote to grade them against each other."
+    }
+
+    // 2) Bottom line vs sticker (20%) — ABSOLUTE sanity check. The quote
+    //    includes tax & fees, so ~100% of MSRP is typical; under ~95% is
+    //    strong. Full marks at 95%, zero at 110%.
     const ratio = offer.msrp > 0 ? (offer.quickOtd || 0) / offer.msrp : 1.1
     const priceScore = clamp01((1.10 - ratio) / 0.15)
 
-    // 2) Financing quality (25%) — the best way's APR vs the benchmark.
+    // 2) Financing quality (25%) — the best way's APR vs the benchmark
+    //    (median of the standard-rate ways across YOUR offers when there are
+    //    peers; a 7% market default otherwise).
     const apr = best ? best.apr : 7
     let financeScore
     if (apr <= 0) financeScore = 1
     else if (apr <= benchmark) financeScore = 0.6 + 0.4 * (1 - apr / benchmark)
     else financeScore = clamp01(0.6 - ((apr - benchmark) / 3) * 0.6)
 
-    // 3) Included value (20%) — $1,500 of thrown-in equipment = full marks.
+    // 3) Included value (10%) — graded against your offers: at the median of
+    //    what your dealers include = 0.6, the most generous = 1.0, nothing
+    //    while others include things = 0. Absolute $1,500 band only when
+    //    there's a single offer.
     const included = (offer.accessories || [])
       .filter((a) => a.charged === 0 && a.retailValue > 0)
       .reduce((s, a) => s + a.retailValue, 0)
-    const includedScore = clamp01(included / 1500)
+    let includedScore, includedDetail
+    const ib = opts.includedBench
+    if (ib && ib.max > 0) {
+      includedScore = included >= ib.median
+        ? 0.6 + 0.4 * clamp01((included - ib.median) / Math.max(ib.max - ib.median, 1))
+        : 0.6 * clamp01(included / Math.max(ib.median, 1))
+      includedDetail = "$" + included.toFixed(0) + " included vs the $" + Math.round(ib.median).toLocaleString() + " median across your offers (most generous: $" + Math.round(ib.max).toLocaleString() + ")."
+    } else if (ib) {
+      includedScore = 1
+      includedDetail = "No offer includes extras — even field."
+    } else {
+      includedScore = clamp01(included / 1500)
+      includedDetail = included > 0 ? "$" + included.toFixed(0) + " of add-ons thrown in at no charge." : "Nothing thrown in for free."
+    }
 
     // 4) No markup above sticker (10%) — a quote above MSRP (after adding
     //    the rebate back) burns this down; $2,000 of markup zeroes it.
@@ -39,12 +73,13 @@
     const markupScore = clamp01(1 - markup / 2000)
 
     const components = [
-      { key: "price", label: "Bottom line vs sticker", weight: 0.45, score: priceScore,
+      { key: "relative", label: "Vs your best offer", weight: 0.35, score: relScore, detail: relDetail },
+      { key: "price", label: "Bottom line vs sticker", weight: 0.20, score: priceScore,
         detail: "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of MSRP. Tax & fees live inside the quote, so ~100% is typical — under 95% is a strong deal." },
       { key: "financing", label: "Financing quality", weight: 0.25, score: financeScore,
-        detail: apr + "% APR on the best way to pay vs a " + benchmark + "% benchmark." },
-      { key: "included", label: "Included value", weight: 0.20, score: includedScore,
-        detail: included > 0 ? "$" + included.toFixed(0) + " of add-ons thrown in at no charge." : "Nothing thrown in for free." },
+        detail: apr + "% APR on the best way to pay vs " + (opts.benchmarkLabel || ("a " + benchmark + "% benchmark")) + "." },
+      { key: "included", label: "Included value", weight: 0.10, score: includedScore,
+        detail: includedDetail },
       { key: "markup", label: "No markup above sticker", weight: 0.10, score: markupScore,
         detail: markup > 0 ? "This quote sits $" + markup.toFixed(0) + " ABOVE sticker once the rebate is added back." : "Quote sits at or below sticker — no hidden markup." },
     ]
@@ -53,6 +88,7 @@
     const score = Math.round(raw * 100) / 10
 
     const improvements = []
+    if (opts.relative && opts.relative.gap > 200) improvements.push("You're $" + Math.round(opts.relative.gap).toLocaleString() + " behind your best offer — show this dealer that quote and ask them to beat it.")
     if (ratio > 0.97 && offer.msrp > 0) improvements.push("Push the bottom line toward 95% of sticker (about $" + Math.round(offer.msrp * 0.95).toLocaleString() + " out the door).")
     if (apr > 0 && financeScore < 0.8) improvements.push("Beat " + apr + "% APR with a credit-union preapproval before you sign.")
     if (included < 300) improvements.push("Ask for extras thrown in — all-weather mats, cargo tray, first services.")

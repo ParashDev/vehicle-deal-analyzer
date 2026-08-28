@@ -27,8 +27,40 @@
     // flags still feed the checklist (e.g. a quote above sticker fires the
     // markup question) even though there is no flags section any more
     const flags = detectFlags(offer, 0)
-    const score = scoreQuickDeal(offer, best, { aprBenchmark: state.benchmark || 7 })
+    // Score's biggest component is RELATIVE: this offer's value-adjusted
+    // total cost against the best of all saved offers
+    const peers = state.offers.filter((o) => !o.draft)
+    const relative = peers.length >= 2 && !offer.draft
+      ? { gap: (best.totalCost - includedValueOf(offer)) - Math.min.apply(null, peers.map(netCostOf)) }
+      : null
+    const bench = aprBenchmark(peers)
+    const incValues = peers.map(includedValueOf).sort((a, b) => a - b)
+    const incMid = Math.floor(incValues.length / 2)
+    const includedBench = incValues.length >= 2 ? {
+      median: incValues.length % 2 ? incValues[incMid] : (incValues[incMid - 1] + incValues[incMid]) / 2,
+      max: Math.max.apply(null, incValues),
+    } : null
+    const score = scoreQuickDeal(offer, best, { aprBenchmark: bench.value, benchmarkLabel: bench.label, relative, includedBench })
     return { results, best, flags, score }
+  }
+
+  // Financing benchmark: the median APR of the standard-rate (rebate-kept)
+  // ways across all entered offers — your own market, not a magic number.
+  // Falls back to any entered rates, then to a 7% market default.
+  function aprBenchmark(peers) {
+    const kept = peers.flatMap((o) => o.scenarios.filter((s) => s.rebatesApplied && s.rebatesApplied.length > 0).map((s) => s.apr)).filter((a) => a > 0)
+    const pool = kept.length ? kept : peers.flatMap((o) => o.scenarios.map((s) => s.apr)).filter((a) => a > 0)
+    if (!pool.length) return { value: 7, label: "a 7% market default" }
+    pool.sort((a, b) => a - b)
+    const mid = Math.floor(pool.length / 2)
+    const median = pool.length % 2 ? pool[mid] : (pool[mid - 1] + pool[mid]) / 2
+    return { value: median, label: "the " + (Math.round(median * 100) / 100) + "% median of the standard-rate ways you entered" }
+  }
+
+  // Cheapest way's total cost at the horizon, minus what's thrown in free
+  function netCostOf(offer) {
+    const costs = effectiveScenarios(offer, state.horizon).map((s) => evaluateScenario(offer, s, state.horizon).totalCost)
+    return Math.min.apply(null, costs) - includedValueOf(offer)
   }
 
   // ── Offers list + editor ──────────────────────────────────────
