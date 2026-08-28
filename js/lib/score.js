@@ -31,26 +31,17 @@
       relDetail = "Only one offer entered — add another dealer's quote to grade them against each other."
     }
 
-    // 2) Bottom line vs sticker (20%) — MEDIAN-RELATIVE like financing and
-    //    included value: your quote's %-of-sticker vs the median of your
-    //    offers. At the median = 6, best of your set = 10, fading to 0 by
-    //    10 points of sticker above the median. Absolute band only when
-    //    there's a single offer and nothing to compare against.
+    // 2) Bottom line vs sticker (20%) — ABSOLUTE, judged only against this
+    //    vehicle's own sticker, so no vehicle's price ever moves another's
+    //    score. Band (smooth between anchors): ≤90% = 10, 95% = 9,
+    //    100% = 6 (typical — tax & fees live inside the quote), 110%+ = 0.
     const ratio = offer.msrp > 0 ? (offer.quickOtd || 0) / offer.msrp : 1.1
-    let priceScore, priceDetail
-    const pb = opts.priceBench
-    if (pb && offer.msrp > 0) {
-      priceScore = ratio <= pb.median
-        ? 0.6 + 0.4 * clamp01((pb.median - ratio) / Math.max(pb.median - pb.best, 0.001))
-        : 0.6 * clamp01(1 - (ratio - pb.median) / 0.10)
-      priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of its sticker vs your offers' median of " + (pb.median * 100).toFixed(1) + "% (best: " + (pb.best * 100).toFixed(1) + "%). At the median scores 6; the best of your set scores 10."
-    } else {
-      priceScore = clamp01((1.10 - ratio) / 0.20)
-      priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of MSRP — tax & fees live in the quote, so ~100% is typical, ~90% exceptional. " +
-        (opts.priceContext === "different-vehicles"
-          ? "Judged on its own sticker: different vehicles discount differently, so their prices aren't ranked head-to-head."
-          : "Add another offer for this vehicle to grade prices head-to-head.")
-    }
+    let priceScore
+    if (ratio <= 0.90) priceScore = 1
+    else if (ratio <= 0.95) priceScore = 0.9 + ((0.95 - ratio) / 0.05) * 0.1
+    else if (ratio <= 1.00) priceScore = 0.6 + ((1.00 - ratio) / 0.05) * 0.3
+    else priceScore = clamp01(0.6 * (1.10 - ratio) / 0.10)
+    const priceDetail = "Quoted OTD is " + (ratio * 100).toFixed(1) + "% of this vehicle's own sticker. Band: 90% = 10, 95% = 9, 100% = 6 (typical — tax & fees live in the quote), 110%+ = 0. No other offer moves this number."
 
     // 2) Financing quality (25%) — the best way's APR vs the benchmark
     //    (median of the standard-rate ways across YOUR offers when there are
