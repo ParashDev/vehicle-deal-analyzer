@@ -6,7 +6,7 @@
 ;(function (CDA) {
   const { state, fmt, fmt0, esc,
     evaluateScenario, effectiveScenarios, compareAll, breakevenMonth, verdict, costCurve,
-    detectFlags, generateChecklist, crossoverChart } = CDA
+    detectFlags, scoreQuickDeal, generateChecklist, crossoverChart } = CDA
 
   const $ = (sel) => document.querySelector(sel)
 
@@ -27,7 +27,8 @@
     // flags still feed the checklist (e.g. a quote above sticker fires the
     // markup question) even though there is no flags section any more
     const flags = detectFlags(offer, 0)
-    return { results, best, flags }
+    const score = scoreQuickDeal(offer, best, { aprBenchmark: state.benchmark || 7 })
+    return { results, best, flags, score }
   }
 
   // ── Offers list + editor ──────────────────────────────────────
@@ -48,7 +49,7 @@
   }
 
   function offerCard(offer, index) {
-    const { best } = offerComputed(offer)
+    const { best, score } = offerComputed(offer)
     const open = state.expandedOfferId === offer.id
     return `
     <article class="panel ${open ? "panel-strong" : ""}">
@@ -69,7 +70,11 @@
           ${includedValueOf(offer) > 0 ? `<div class="text-right">
             <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">+VALUE</p>
             <p class="font-mono text-base font-semibold tabular text-good">${fmt0(includedValueOf(offer))}</p>
-          </div>` : ""}` : ""}
+          </div>` : ""}
+          <div class="text-right">
+            <p class="font-mono text-[0.625rem] tracking-widest text-ink-faint">SCORE</p>
+            <p class="font-mono text-base font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}</p>
+          </div>` : ""}
           <div class="flex gap-2">
             ${open
               ? offer.draft
@@ -274,12 +279,48 @@
 
     $("#comparison-section").classList.toggle("hidden", results.length < 2)
     $("#chart-section").classList.toggle("hidden", !chartFocusOffer())
+    $("#score-section").classList.toggle("hidden", !has)
     $("#checklist-section").classList.toggle("hidden", !has)
 
     if (results.length >= 2) renderComparison(results)
     renderDealerVerdict(results)
     renderChart()
-    if (has) renderChecklist()
+    if (has) { renderScores(); renderChecklist() }
+  }
+
+  function renderScores() {
+    $("#scores").innerHTML = savedOffers().map((offer) => {
+      const { score } = offerComputed(offer)
+      return `
+      <div class="panel p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="font-mono text-[0.6875rem] tracking-[0.14em] text-ink-faint">${esc(offer.label).toUpperCase()}</p>
+            <p class="mt-1 text-[0.875rem] font-semibold">${esc(score.band)}</p>
+          </div>
+          <p class="font-mono text-4xl font-semibold tabular ${score.score >= 6.5 ? "text-good" : score.score < 4.5 ? "text-bad" : ""}">${score.score.toFixed(1)}<span class="text-base text-ink-faint">/10</span></p>
+        </div>
+        <div class="mt-4 grid gap-2.5">
+          ${score.components.map((c) => `
+            <div>
+              <div class="flex items-baseline justify-between gap-4">
+                <p class="text-[0.8125rem] text-ink-soft">${esc(c.label)} <span class="font-mono text-[0.625rem] text-ink-faint">${Math.round(c.weight * 100)}%</span></p>
+                <p class="font-mono text-[0.8125rem] tabular">${(c.score * 10).toFixed(1)}</p>
+              </div>
+              <div class="scorebar mt-1"><span style="width:${(c.score * 100).toFixed(0)}%"></span></div>
+              <p class="mt-1 text-[0.6875rem] leading-relaxed text-ink-faint">${esc(c.detail)}</p>
+            </div>`).join("")}
+        </div>
+        ${score.improvements.length ? `
+        <div class="mt-4 border-t border-hairline pt-3">
+          <p class="font-mono text-[0.625rem] tracking-[0.14em] text-ink-faint">WHAT WOULD MAKE THIS A 9–10</p>
+          <ul class="mt-2 grid gap-1.5 text-[0.8125rem] leading-relaxed text-ink-soft">
+            ${score.improvements.map((imp) => `<li class="flex gap-2"><span class="text-ink-faint">→</span>${esc(imp)}</li>`).join("")}
+          </ul>
+        </div>` : ""}
+        <p class="mt-3 text-[0.6875rem] leading-relaxed text-ink-faint">Honest scale: 8 is genuinely good, most buyers land 5–6. Graded on the quote itself — the dealer-vs-dealer winner is above.</p>
+      </div>`
+    }).join("")
   }
 
   function renderComparison(results) {
